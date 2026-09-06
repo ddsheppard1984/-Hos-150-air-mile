@@ -1,131 +1,143 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101418"><title>HOS 150 ELD — V2 Prototype</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<title>HOS 150 ELD</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{--bg:#eef1f4;--card:#fff;--ink:#101418;--muted:#66707a;--line:#d9dee3;--green:#17833b;--red:#b42318;--amber:#a15c00;--blue:#185adb}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{background:#101418;color:white;padding:12px 14px;position:sticky;top:0;z-index:1000}.head{max-width:1200px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}.brand{font-weight:900;font-size:19px}.proto{font-size:10px;opacity:.7}
-nav{max-width:1200px;margin:auto;display:flex;gap:5px;overflow:auto;padding:8px 0}nav button{white-space:nowrap;width:auto}
-main{max-width:1200px;margin:auto;padding:8px}.screen{display:none}.screen.active{display:block}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin:9px 0;box-shadow:0 2px 8px #0000000a}
-h2{font-size:17px;margin:0 0 10px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
-.metric{font-size:26px;font-weight:900}.label{font-size:10px;text-transform:uppercase;font-weight:800;color:var(--muted)}.small{font-size:12px;color:var(--muted);line-height:1.45}
-.status{border-radius:12px;padding:12px;font-weight:800}.good{background:#def6e6;color:#11622e}.bad{background:#ffe2df;color:#8e1710}.warn{background:#fff0c9;color:#754800}.neutral{background:#edf0f2;color:#343a40}.blue{background:#e3ecff;color:#16499b}
-button,input,select,textarea{font:inherit;border-radius:10px;border:1px solid var(--line);padding:10px;background:#fff;color:var(--ink)}button{background:#101418;color:#fff;border:0;font-weight:800;cursor:pointer;width:100%}button.secondary{background:#e7eaed;color:#111}button.red{background:#b42318}button.green{background:#17833b}
-button.active{outline:3px solid #101418;outline-offset:1px}.row{display:flex;gap:8px}.row>*{flex:1}
-.duty{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.duty button{min-height:64px;font-size:16px}
-#map{height:470px;border-radius:13px}.radius{position:relative}.radiusBadge{position:absolute;z-index:500;top:10px;left:10px;background:#fff;border-radius:12px;padding:10px;box-shadow:0 2px 12px #0002;font-weight:900}
-.bar{height:12px;background:#e1e4e7;border-radius:20px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#101418}
-.graph{height:220px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:linear-gradient(#fff,#fff)}.graph canvas{width:100%;height:100%}
-table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;border-bottom:1px solid #e7e9eb;text-align:left;vertical-align:top}.scroll{overflow:auto}
-.check{display:flex;align-items:center;gap:8px;padding:7px 0}.check input{width:auto}
-.alert{padding:10px;border-left:5px solid var(--red);background:#fff2f1;margin:7px 0}.pill{display:inline-block;border-radius:99px;padding:5px 9px;background:#e9edf1;font-size:11px;font-weight:800}
-@media(max-width:760px){.grid4{grid-template-columns:repeat(2,1fr)}.grid3,.grid2{grid-template-columns:1fr}.duty{grid-template-columns:repeat(2,1fr)}.row{flex-direction:column}#map{height:400px}}
-</style></head>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+header{background:#111827;color:#fff;position:sticky;top:0;z-index:1000;padding:12px}.head{max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center}.brand{font-weight:900;font-size:20px}.sub{font-size:9px;color:#cbd5e1}
+nav{background:#fff;position:sticky;top:61px;z-index:900;border-bottom:1px solid #d1d5db;overflow:auto;display:flex;gap:5px;padding:7px}
+nav button{white-space:nowrap;width:auto;background:#e5e7eb;color:#111827;padding:9px 12px}
+nav button.sel{background:#111827;color:white}
+main{max-width:1100px;margin:auto;padding:8px}.screen{display:none}.screen.active{display:block}
+.card{background:white;border:1px solid #d8dde3;border-radius:15px;padding:14px;margin:9px 0;box-shadow:0 2px 8px #0000000a}
+h2{font-size:17px;margin:0 0 10px}.muted{color:#6b7280;font-size:12px}.grid{display:grid;gap:9px}.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.metric{font-size:26px;font-weight:900}.label{font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase}
+.status{padding:11px;border-radius:11px;font-weight:800}.good{background:#dcfce7;color:#166534}.warn{background:#fef3c7;color:#92400e}.bad{background:#fee2e2;color:#991b1b}.neutral{background:#e5e7eb;color:#374151}.blue{background:#dbeafe;color:#1e40af}
+button,input,select,textarea{font:inherit;border:1px solid #d1d5db;border-radius:10px;padding:10px}button{background:#111827;color:#fff;font-weight:800;border:0;cursor:pointer;width:100%}button.secondary{background:#e5e7eb;color:#111827}.row{display:flex;gap:8px}.row>*{flex:1}
+.duty{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.duty button{min-height:62px}.duty button.active{outline:3px solid #111827}
+.bar{height:12px;border-radius:20px;background:#e5e7eb;overflow:hidden}.bar i{display:block;height:100%;background:#111827;width:0}
+.big{font-size:28px;text-align:center;padding:16px}.alert{border-left:5px solid #b91c1c;background:#fff1f2;padding:10px;margin:6px 0;border-radius:8px}
+#map{height:460px;border-radius:12px}.mapwrap{position:relative}.maptag{position:absolute;z-index:500;top:10px;left:10px;background:#fff;padding:9px;border-radius:10px;font-weight:900;box-shadow:0 2px 8px #0003}
+.graph{height:300px;border:1px solid #d1d5db;border-radius:12px}.graph canvas{width:100%;height:100%}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:left}.scroll{overflow:auto}
+.check{display:flex;gap:8px;padding:7px 0}.check input{width:auto}.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#374151;color:white;font-size:10px;font-weight:900}
+@media(max-width:760px){.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}.duty{grid-template-columns:repeat(2,1fr)}.row{flex-direction:column}#map{height:390px}}
+@media print{header,nav,button,.noprint{display:none!important}body{background:#fff}.screen{display:none!important}#log{display:block!important}.card{box-shadow:none}}
+</style>
+</head>
 <body>
-<header><div class="head"><div><div class="brand">🚛 HOS 150 ELD</div><div class="proto">V2 DEVELOPMENT PROTOTYPE — NOT A CERTIFIED ELD</div></div><div id="topStatus" class="pill">NOT STARTED</div></div></header>
-<nav>
-<button onclick="show('home')">Dashboard</button><button onclick="show('log')">24-Hour Log</button><button onclick="show('radius')">150-Mile Map</button><button onclick="show('inspect')">Inspections</button><button onclick="show('records')">Records</button><button onclick="show('docs')">Documents</button><button onclick="show('settings')">Settings</button>
+<header><div class="head"><div><div class="brand">🚛 HOS 150 ELD</div><div class="sub">V3 DRIVER WORKFLOW PROTOTYPE • NOT A CERTIFIED ELD</div></div><div id="sync" class="pill">OFFLINE READY</div></div></header>
+<nav id="nav">
+<button class="sel" onclick="show('home',this)">Dashboard</button><button onclick="show('log',this)">24-Hour Log</button><button onclick="show('radius',this)">150-Mile Map</button><button onclick="show('inspect',this)">Inspections</button><button onclick="show('records',this)">Records</button><button onclick="show('roadside',this)">Roadside</button><button onclick="show('settings',this)">Settings</button>
 </nav>
 <main>
-
 <section id="home" class="screen active">
+<div id="elig" class="status warn">Set your normal reporting location in Settings.</div>
 <div class="card">
-<div id="eligibility" class="status warn">SET YOUR NORMAL REPORTING LOCATION</div>
-<div class="grid4" style="margin-top:9px">
-<div><div class="label">Driving left</div><div class="metric" id="driveLeft">11:00</div></div>
-<div><div class="label">14-hour left</div><div class="metric" id="shiftLeft">14:00</div></div>
-<div><div class="label">Cycle left</div><div class="metric" id="cycleLeft">--</div></div>
-<div><div class="label">Air miles</div><div class="metric" id="air">--</div></div>
+<div class="grid g4">
+<div><div class="label">Driving remaining</div><div class="metric" id="driveLeft">11:00</div><div class="bar"><i id="b11"></i></div></div>
+<div><div class="label">14-hour remaining</div><div class="metric" id="shiftLeft">14:00</div><div class="bar"><i id="b14"></i></div></div>
+<div><div class="label">Cycle remaining</div><div class="metric" id="cycleLeft">--</div><div class="bar"><i id="bCycle"></i></div></div>
+<div><div class="label">Air miles</div><div class="metric" id="miles">--</div><div class="muted">from reporting location</div></div>
 </div>
 </div>
-<div class="card"><h2>Current duty status</h2><div id="bigDuty" class="status bigstatus neutral" style="font-size:25px;text-align:center">OFF DUTY</div>
-<div class="duty" style="margin-top:10px"><button id="OFF" onclick="setDuty('OFF')">OFF DUTY</button><button id="SLEEPER" onclick="setDuty('SLEEPER')">SLEEPER</button><button id="DRIVING" onclick="setDuty('DRIVING')">DRIVING</button><button id="ON DUTY" onclick="setDuty('ON DUTY')">ON DUTY</button></div>
-<div class="row" style="margin-top:9px"><button onclick="startShift()">START SHIFT</button><button class="red" onclick="endShift()">END / RELEASE</button></div></div>
-<div class="grid3">
-<div class="card"><div class="label">14-hour window</div><div class="bar"><i id="bar14"></i></div><div class="small" id="txt14"></div></div>
-<div class="card"><div class="label">11-hour driving</div><div class="bar"><i id="bar11"></i></div><div class="small" id="txt11"></div></div>
-<div class="card"><div class="label">150-mile status</div><div id="radiusStatus" class="status neutral">GPS OFF</div></div>
+<div class="card"><h2>Current duty status</h2><div id="current" class="status neutral big">OFF DUTY</div>
+<div class="duty" style="margin-top:10px">
+<button onclick="duty('OFF DUTY')" id="OFF DUTY">OFF DUTY</button><button onclick="duty('SLEEPER')" id="SLEEPER">SLEEPER</button><button onclick="duty('DRIVING')" id="DRIVING">DRIVING</button><button onclick="duty('ON DUTY')" id="ON DUTY">ON DUTY</button>
 </div>
-<div class="card"><h2>Driver alerts</h2><div id="alerts" class="small">No alerts.</div></div>
+<div class="row" style="margin-top:9px"><button onclick="startShift()">START SHIFT</button><button class="secondary" onclick="endShift()">END SHIFT / RELEASE</button></div></div>
+<div class="grid g3">
+<div class="card"><div class="label">150-mile boundary</div><div id="radiusHome" class="status neutral">GPS OFF</div></div>
+<div class="card"><div class="label">Break / driving warning</div><div id="break" class="status neutral">No warning</div></div>
+<div class="card"><div class="label">Today's on-duty</div><div class="metric" id="todayOn">00:00</div></div>
+</div>
+<div class="card"><h2>Driver alerts</h2><div id="alerts" class="muted">No current alerts.</div></div>
 </section>
 
 <section id="log" class="screen">
-<div class="card"><h2>Daily Record of Duty Status</h2><div class="small">24-hour graph modeled on the driver-log workflow. This prototype does not constitute a compliant ELD output.</div><div class="graph"><canvas id="chart"></canvas></div>
-<div class="grid4" style="margin-top:10px"><div><div class="label">Off duty</div><div class="metric" id="totOff">00:00</div></div><div><div class="label">Sleeper</div><div class="metric" id="totSleep">00:00</div></div><div><div class="label">Driving</div><div class="metric" id="totDrive">00:00</div></div><div><div class="label">On duty</div><div class="metric" id="totOn">00:00</div></div></div>
-</div>
-<div class="card"><h2>Event history</h2><div class="scroll"><table><thead><tr><th>Time</th><th>Status</th><th>Location</th><th>Source</th><th>Annotation</th></tr></thead><tbody id="eventRows"></tbody></table></div></div>
+<div class="card"><h2>Daily Record of Duty Status</h2><div class="row noprint"><input type="date" id="logDate"><button onclick="window.print()">PRINT / SAVE PDF</button></div>
+<div class="graph"><canvas id="chart"></canvas></div>
+<div class="grid g4" style="margin-top:10px">
+<div><div class="label">Off duty</div><div class="metric" id="offTot">00:00</div></div><div><div class="label">Sleeper</div><div class="metric" id="sleepTot">00:00</div></div><div><div class="label">Driving</div><div class="metric" id="driveTot">00:00</div></div><div><div class="label">On duty</div><div class="metric" id="onTot">00:00</div></div>
+</div></div>
+<div class="card"><h2>ELD event history</h2><div class="scroll"><table><thead><tr><th>Time</th><th>Status</th><th>Location</th><th>Source</th><th>Annotation</th></tr></thead><tbody id="events"></tbody></table></div></div>
 </section>
 
 <section id="radius" class="screen">
-<div class="card"><h2>150 Air-Mile Radius</h2><div class="grid3"><div><div class="label">Reporting location</div><b id="baseName">Not set</b></div><div><div class="label">Current air miles</div><b id="radiusMiles">--</b></div><div><div class="label">Boundary</div><b>150 air miles</b></div></div></div>
-<div class="card radius"><div class="radiusBadge">⭕ 150 AIR-MILE RADIUS</div><div id="map"></div></div>
-<div class="card"><h2>Destination check</h2><div class="row"><input id="destination" placeholder="City, address or ZIP"><button onclick="checkDestination()">CHECK DESTINATION</button></div><div id="destResult" class="status neutral" style="margin-top:8px">Enter a destination.</div></div>
+<div class="card"><h2>150 Air-Mile Tracking</h2><div class="grid g3"><div><div class="label">Reporting location</div><b id="baseName">Not set</b></div><div><div class="label">Current distance</div><b id="dist">--</b></div><div><div class="label">Boundary</div><b>150 NM</b></div></div></div>
+<div class="card mapwrap"><div class="maptag">⭕ 150 AIR-MILE RADIUS</div><div id="map"></div></div>
+<div class="card"><h2>Destination checker</h2><div class="row"><input id="dest" placeholder="City, ZIP or address"><button onclick="destination()">CHECK</button></div><div id="destResult" class="status neutral" style="margin-top:8px">Enter a destination.</div></div>
 </section>
 
 <section id="inspect" class="screen">
-<div class="card"><h2>Pre-trip inspection</h2><div id="preChecks"></div><div class="row"><button onclick="finishInspection('pre')">COMPLETE PRE-TRIP</button><button class="secondary" onclick="clearInspection('pre')">CLEAR</button></div><div id="preResult" class="status neutral">Not completed.</div></div>
-<div class="card"><h2>Post-trip inspection</h2><div id="postChecks"></div><div class="row"><button onclick="finishInspection('post')">COMPLETE POST-TRIP</button><button class="secondary" onclick="clearInspection('post')">CLEAR</button></div><div id="postResult" class="status neutral">Not completed.</div></div>
+<div class="card"><h2>Pre-trip inspection</h2><div id="pre"></div><div class="row"><button onclick="completeInspect('pre')">COMPLETE PRE-TRIP</button><button class="secondary" onclick="clearInspect('pre')">CLEAR</button></div><div id="preMsg" class="status neutral">Not completed.</div></div>
+<div class="card"><h2>Post-trip inspection</h2><div id="post"></div><div class="row"><button onclick="completeInspect('post')">COMPLETE POST-TRIP</button><button class="secondary" onclick="clearInspect('post')">CLEAR</button></div><div id="postMsg" class="status neutral">Not completed.</div></div>
 </section>
 
 <section id="records" class="screen">
-<div class="card"><h2>Short-haul / daily record</h2><div class="grid3"><input id="recDate" type="date"><input id="recIn" type="time" placeholder="In"><input id="recOut" type="time" placeholder="Out"></div><div class="grid2" style="margin-top:8px"><input id="recHours" type="number" step=".25" placeholder="On-duty hours"><input id="recNote" placeholder="Notes"></div><button onclick="addRecord()" style="margin-top:8px">SAVE RECORD</button><div class="scroll" style="margin-top:9px"><table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Notes</th></tr></thead><tbody id="recRows"></tbody></table></div></div>
-<div class="card"><h2>Previous 7 days / cycle recap</h2><div id="recap" class="small"></div><button class="secondary" onclick="exportRecords()">EXPORT CSV</button></div>
+<div class="card"><h2>Short-haul / daily records</h2><div class="grid g3"><input id="rdate" type="date"><input id="rin" type="time"><input id="rout" type="time"></div><div class="grid g2" style="margin-top:8px"><input id="rhrs" type="number" step=".25" placeholder="On-duty hours"><input id="rnote" placeholder="Notes"></div><button style="margin-top:8px" onclick="addRecord()">SAVE DAILY RECORD</button>
+<div class="scroll" style="margin-top:10px"><table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Notes</th></tr></thead><tbody id="records"></tbody></table></div></div>
+<div class="card"><h2>Cycle recap</h2><div id="recap" class="muted"></div><button class="secondary" onclick="exportCSV()">EXPORT CSV</button></div>
 </section>
 
-<section id="docs" class="screen">
-<div class="card"><h2>Supporting documents</h2><div class="small">Prototype document register. Production version can attach photos/PDFs to the appropriate duty/event record.</div><input id="docName" placeholder="Document description"><select id="docType"><option>Fuel receipt</option><option>Bill of lading</option><option>Scale ticket</option><option>Inspection</option><option>Other</option></select><button onclick="addDoc()" style="margin-top:8px">ADD DOCUMENT</button><div class="scroll"><table><thead><tr><th>Time</th><th>Type</th><th>Description</th></tr></thead><tbody id="docRows"></tbody></table></div></div>
-<div class="card"><h2>Driver certification</h2><div class="status warn">Certification belongs at the end of the daily RODS workflow in the production ELD.</div><button onclick="certify()">CERTIFY TODAY'S RECORD AS ACCURATE</button><div id="cert" class="small" style="margin-top:8px"></div></div>
+<section id="roadside" class="screen">
+<div class="card"><h2>Roadside inspection mode</h2><div class="status blue">Driver-facing summary</div><div class="grid g2" style="margin-top:9px">
+<div><div class="label">Driver</div><b id="rsDriver">—</b></div><div><div class="label">Carrier</div><b id="rsCarrier">—</b></div><div><div class="label">Unit</div><b id="rsUnit">—</b></div><div><div class="label">USDOT</div><b id="rsDot">—</b></div><div><div class="label">Current status</div><b id="rsStatus">OFF DUTY</b></div><div><div class="label">Current location</div><b id="rsLoc">GPS unavailable</b></div></div></div>
+<div class="card"><h2>HOS snapshot</h2><div class="grid g3"><div><div class="label">Drive remaining</div><div class="metric" id="rsDrive">11:00</div></div><div><div class="label">14-hour remaining</div><div class="metric" id="rs14">14:00</div></div><div><div class="label">Cycle remaining</div><div class="metric" id="rsCycle">--</div></div></div></div>
+<div class="card"><h2>Radius status</h2><div id="rsRadius" class="status neutral">Not available</div></div>
 </section>
 
 <section id="settings" class="screen">
-<div class="card"><h2>Driver / carrier / vehicle</h2><div class="grid2"><input id="driver" placeholder="Driver name"><input id="carrier" placeholder="Carrier"><input id="usdot" placeholder="USDOT number"><input id="unit" placeholder="Power unit number"><input id="vin" placeholder="VIN"><input id="trailer" placeholder="Trailer number"></div></div>
-<div class="card"><h2>Normal reporting location</h2><div class="row"><input id="baseInput" placeholder="Address, city or ZIP"><button onclick="saveBase()">SAVE REPORTING LOCATION</button><button class="secondary" onclick="useGPSBase()">USE GPS</button></div><div id="baseResult" class="status neutral">Not set.</div></div>
-<div class="card"><h2>HOS cycle</h2><div class="grid2"><select id="cycleType"><option value="60">60 / 7</option><option value="70">70 / 8</option></select><input id="cycleHours" type="number" step=".1" placeholder="Cycle hours remaining"></div><button onclick="saveSettings()" style="margin-top:8px">SAVE SETTINGS</button></div>
-<div class="card"><h2>Prototype boundary</h2><p class="small">The 150-air-mile feature is an HOS/short-haul assistant. Being inside the circle does not by itself establish eligibility for a short-haul exception. The production rules engine must evaluate the applicable regulatory conditions, carrier configuration, reporting location, time/duty requirements and recordkeeping status.</p></div>
+<div class="card"><h2>Driver / carrier / vehicle</h2><div class="grid g2"><input id="driver" placeholder="Driver name"><input id="carrier" placeholder="Carrier"><input id="dot" placeholder="USDOT number"><input id="unit" placeholder="Power unit"><input id="vin" placeholder="VIN"><input id="trailer" placeholder="Trailer number"></div></div>
+<div class="card"><h2>Normal reporting location</h2><div class="row"><input id="base" placeholder="Address, city or ZIP"><button onclick="saveBase()">SAVE LOCATION</button><button class="secondary" onclick="gpsBase()">USE CURRENT GPS</button></div><div id="baseMsg" class="status neutral" style="margin-top:8px">Not set.</div></div>
+<div class="card"><h2>HOS cycle configuration</h2><div class="grid g2"><select id="cycleType"><option value="60">60 hours / 7 days</option><option value="70">70 hours / 8 days</option></select><input id="cycleRemaining" type="number" step=".1" placeholder="Cycle hours remaining"></div><button style="margin-top:8px" onclick="saveSettings()">SAVE SETTINGS</button></div>
+<div class="card"><h2>Prototype / compliance note</h2><p class="muted">This prototype records duty status on the device, provides HOS calculations, a 150-air-mile assistant, GPS tracking, inspections, records and a roadside summary. It does not yet synchronize with the truck ECM and is not a certified FMCSA ELD. Production certification requires compliant hardware integration, required event/data handling, security, transfer, diagnostics and other regulatory requirements.</p></div>
 </section>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const NM150=150,FT_NM=1852;
-let S=JSON.parse(localStorage.getItem('hos150v2')||'{}');S.events=S.events||[];S.records=S.records||[];S.docs=S.docs||[];S.inspections=S.inspections||{};
-let map=L.map('map').setView([39.8283,-98.5795],4),circle,baseMarker,currentMarker,watchId=null;
+const NM=150, FT=1852, LIMIT11=39600, LIMIT14=50400;
+let S=JSON.parse(localStorage.getItem('hos150v3')||'{}'); S.events=S.events||[];S.records=S.records||[];S.docs=S.docs||[];S.base=S.base||null;S.cycleRemaining=S.cycleRemaining||0;
+let map=L.map('map').setView([39.8283,-98.5795],4), circle=null, baseMarker=null, curMarker=null, watch=null;
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
-const inspection=['Brakes','Tires / wheels','Lights / reflectors','Steering','Suspension','Coupling devices','Emergency equipment','Windshield / wipers','Mirrors','Horn','Fluids','Safety equipment'];
-function $(x){return document.getElementById(x)}function save(){localStorage.setItem('hos150v2',JSON.stringify(S))}
-function show(id){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');if(id==='radius')setTimeout(()=>map.invalidateSize(),50);if(id==='log')drawGraph()}
-function hav(a,b){let R=3440.065,p=Math.PI/180,d1=(b.lat-a.lat)*p,d2=(b.lon-a.lon)*p,x=Math.sin(d1/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(d2/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
-async function geocode(q){let r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q='+encodeURIComponent(q)),j=await r.json();if(!j.length)throw Error('Location not found');return{lat:+j[0].lat,lon:+j[0].lon,name:j[0].display_name}}
-function locationName(){return S.pos?S.pos.lat.toFixed(4)+', '+S.pos.lon.toFixed(4):'Unavailable'}
-function fmt(s){s=Math.max(0,Math.floor(s||0));return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor(s%3600/60)).padStart(2,'0')}
-function startShift(){if(!S.base)return alert('Set the normal reporting location first.');if(S.shiftStart)return alert('Shift already running.');S.shiftStart=Date.now();S.duty='ON DUTY';S.drive=0;S.dutyStart=Date.now();addEvent('ON DUTY','Driver','Shift started');save();update()}
-function endShift(){if(!S.shiftStart)return alert('No active shift.');if(S.duty==='DRIVING')closeDrive();addEvent('OFF DUTY','Driver','Shift ended / released');S.shiftStart=null;S.duty='OFF DUTY';S.dutyStart=null;save();update()}
-function closeDrive(){if(S.duty==='DRIVING'&&S.dutyStart){S.drive=(S.drive||0)+(Date.now()-S.dutyStart)/1000}S.dutyStart=null}
-function setDuty(s){if(!S.shiftStart)return alert('Start shift first.');if(S.duty===s)return;if(S.duty==='DRIVING')closeDrive();S.duty=s;S.dutyStart=Date.now();addEvent(s,'Driver','Duty-status change');save();update()}
-function addEvent(status,source,note){S.events.push({t:Date.now(),status,source,note,loc:locationName(),pos:S.pos||null});renderEvents();drawGraph()}
-function update(){let now=Date.now(),shift=S.shiftStart?(now-S.shiftStart)/1000:0,drive=(S.drive||0)+(S.duty==='DRIVING'&&S.dutyStart?(now-S.dutyStart)/1000:0);$('driveLeft').textContent=fmt(39600-drive);$('shiftLeft').textContent=fmt(50400-shift);$('cycleLeft').textContent=(Number(S.cycleHours)||0).toFixed(1)+' h';$('topStatus').textContent=S.shiftStart?(S.duty||'ACTIVE'):'NOT STARTED';$('bigDuty').textContent=S.duty||'OFF DUTY';$('bar14').style.width=Math.min(100,shift/50400*100)+'%';$('bar11').style.width=Math.min(100,drive/39600*100)+'%';$('txt14').textContent=fmt(shift)+' used / 14:00';$('txt11').textContent=fmt(drive)+' used / 11:00';
-['OFF','SLEEPER','DRIVING','ON DUTY'].forEach(x=>$(x).classList.remove('active'));if(S.duty)$(S.duty).classList.add('active');
-if(S.base&&S.pos){let nm=hav(S.base,S.pos);$('air').textContent=nm.toFixed(1);$('radiusMiles').textContent=nm.toFixed(1)+' NM';let inside=nm<=150;$('radiusStatus').className='status '+(inside?'good':'bad');$('radiusStatus').textContent=inside?'INSIDE 150 AIR MILES':'OUTSIDE 150 AIR MILES';$('eligibility').className='status '+(inside?'good':'warn');$('eligibility').textContent=inside?'🟢 WITHIN 150 AIR-MILE AREA':'🟠 OUTSIDE 150 AIR-MILE AREA';let a=[];if(nm>=140&&inside)a.push('Approaching 150-air-mile boundary: '+nm.toFixed(1)+' NM.');if(nm>150)a.push('Outside 150-air-mile boundary.');if(drive>=36000)a.push('Approaching 11-hour driving limit.');if(shift>=46800)a.push('Approaching 14-hour window.');$('alerts').innerHTML=a.length?a.map(x=>'<div class="alert">'+x+'</div>').join(''):'No current radius/HOS alerts.'}}
-function gps(){if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;return}watchId=navigator.geolocation.watchPosition(p=>{S.pos={lat:p.coords.latitude,lon:p.coords.longitude};if(!currentMarker)currentMarker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map);else currentMarker.setLatLng([p.coords.latitude,p.coords.longitude]);update()},e=>console.log(e),{enableHighAccuracy:true,maximumAge:3000,timeout:10000})}
-function drawBase(){if(!S.base)return;if(baseMarker)map.removeLayer(baseMarker);if(circle)map.removeLayer(circle);baseMarker=L.marker([S.base.lat,S.base.lon]).addTo(map);circle=L.circle([S.base.lat,S.base.lon],{radius:NM150*FT_NM,weight:3,fillOpacity:.12}).addTo(map);$('baseName').textContent=S.base.name;map.fitBounds(circle.getBounds())}
-async function saveBase(){try{S.base=await geocode($('baseInput').value.trim());$('baseResult').className='status good';$('baseResult').textContent='Reporting location saved.';save();drawBase();update()}catch(e){$('baseResult').className='status bad';$('baseResult').textContent=e.message}}
-function useGPSBase(){navigator.geolocation.getCurrentPosition(p=>{S.base={lat:p.coords.latitude,lon:p.coords.longitude,name:'GPS reporting location'};$('baseInput').value=S.base.name;save();drawBase();update()})}
-async function checkDestination(){if(!S.base)return alert('Set reporting location first.');try{let p=await geocode($('destination').value.trim()),nm=hav(S.base,p);$('destResult').className='status '+(nm<=150?'good':'bad');$('destResult').textContent=(nm<=150?'INSIDE':'OUTSIDE')+' 150 air miles • '+nm.toFixed(1)+' NM';map.setView([p.lat,p.lon],8)}catch(e){$('destResult').className='status bad';$('destResult').textContent=e.message}}
-function renderEvents(){$('eventRows').innerHTML=S.events.slice().reverse().map(e=>'<tr><td>'+new Date(e.t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</td><td>'+e.status+'</td><td>'+e.loc+'</td><td>'+e.source+'</td><td>'+e.note+'</td></tr>').join('')}
-function drawGraph(){let c=$('chart'),ctx=c.getContext('2d'),w=c.width=c.clientWidth*devicePixelRatio,h=c.height=c.clientHeight*devicePixelRatio;ctx.scale(devicePixelRatio,devicePixelRatio);w=c.clientWidth;h=c.clientHeight;ctx.clearRect(0,0,w,h);let rows={'OFF DUTY':0,'SLEEPER':1,'DRIVING':2,'ON DUTY':3},labels=['OFF DUTY','SLEEPER','DRIVING','ON DUTY'];ctx.font='10px sans-serif';for(let i=0;i<24;i++){let x=70+(w-85)*i/24;ctx.strokeStyle='#ddd';ctx.beginPath();ctx.moveTo(x,15);ctx.lineTo(x,h-25);ctx.stroke();ctx.fillStyle='#66707a';ctx.fillText(i,x-4,h-8)}labels.forEach((l,i)=>{let y=30+i*45;ctx.fillStyle='#66707a';ctx.fillText(l,5,y+4);ctx.strokeStyle='#e5e8eb';ctx.beginPath();ctx.moveTo(70,y);ctx.lineTo(w,y);ctx.stroke()});let ev=S.events;for(let i=0;i<ev.length;i++){let e=ev[i],n=ev[i+1],end=n?n.t:Date.now();if(!e.t)continue;let d=new Date(e.t),start=(d.getHours()+d.getMinutes()/60+d.getSeconds()/3600);let ed=new Date(end),finish=(ed.getHours()+ed.getMinutes()/60+ed.getSeconds()/3600);if(finish<start)finish=24;let y=30+(rows[e.status]||0)*45,x1=70+(w-85)*start/24,x2=70+(w-85)*finish/24;ctx.strokeStyle='#111';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke()}}
-function buildInspections(){['pre','post'].forEach(t=>$(t+'Checks').innerHTML=inspection.map((x,i)=>'<label class="check"><input id="'+t+i+'" type="checkbox"> '+x+'</label>').join(''))}
-function finishInspection(t){let miss=inspection.filter((x,i)=>!$(t+i).checked);S.inspections[t]={time:Date.now(),passed:!miss.length,missing:miss};save();$(t+'Result').className='status '+(miss.length?'bad':'good');$(t+'Result').textContent=miss.length?'Incomplete: '+miss.join(', '):'✓ Completed — no unchecked items.'}
-function clearInspection(t){inspection.forEach((x,i)=>$(t+i).checked=false);delete S.inspections[t];save();$(t+'Result').className='status neutral';$(t+'Result').textContent='Not completed.'}
-function addRecord(){let r={date:$('recDate').value,in:$('recIn').value,out:$('recOut').value,hours:$('recHours').value,note:$('recNote').value};if(!r.date)return;S.records.unshift(r);save();renderRecords()}
-function renderRecords(){$('recRows').innerHTML=S.records.map(r=>'<tr><td>'+r.date+'</td><td>'+r.in+'</td><td>'+r.out+'</td><td>'+r.hours+'</td><td>'+r.note+'</td></tr>').join('');$('recap').innerHTML=S.records.slice(0,7).map(r=>r.date+' — '+r.hours+' on-duty hours — '+(r.note||'')).join('<br>')||'No records yet.'}
-function exportRecords(){let rows=[['Date','In','Out','Hours','Notes'],...S.records.map(r=>[r.date,r.in,r.out,r.hours,r.note])],csv=rows.map(r=>r.map(x=>'\"'+String(x||'').replaceAll('\"','\"\"')+'\"').join(',')).join('\\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='HOS150-records.csv';a.click()}
-function addDoc(){if(!$('docName').value)return;S.docs.unshift({t:Date.now(),type:$('docType').value,name:$('docName').value});$('docName').value='';save();renderDocs()}
-function renderDocs(){$('docRows').innerHTML=S.docs.map(d=>'<tr><td>'+new Date(d.t).toLocaleString()+'</td><td>'+d.type+'</td><td>'+d.name+'</td></tr>').join('')}
-function certify(){S.cert=Date.now();save();$('cert').textContent='Certified '+new Date(S.cert).toLocaleString()}
-function saveSettings(){S.driver=$('driver').value;S.carrier=$('carrier').value;S.usdot=$('usdot').value;S.unit=$('unit').value;S.vin=$('vin').value;S.trailer=$('trailer').value;S.cycleType=$('cycleType').value;S.cycleHours=Number($('cycleHours').value)||0;save();update()}
-function init(){buildInspections();renderEvents();renderRecords();renderDocs();let d=new Date().toISOString().slice(0,10);$('recDate').value=d;if(S.base){$('baseInput').value=S.base.name;drawBase()}if(S.driver)$('driver').value=S.driver;if(S.carrier)$('carrier').value=S.carrier;if(S.usdot)$('usdot').value=S.usdot;if(S.unit)$('unit').value=S.unit;if(S.vin)$('vin').value=S.vin;if(S.trailer)$('trailer').value=S.trailer;if(S.cycleType)$('cycleType').value=S.cycleType;if(S.cycleHours)$('cycleHours').value=S.cycleHours;if(S.cert)$('cert').textContent='Certified '+new Date(S.cert).toLocaleString();gps();update()}
-setInterval(update,1000);init();
-</script></body></html>
+const checks=['Brakes','Tires / wheels','Lights / reflectors','Steering','Suspension','Coupling devices','Emergency equipment','Windshield / wipers','Mirrors','Horn','Fluids','Safety equipment'];
+function $(x){return document.getElementById(x)}function save(){localStorage.setItem('hos150v3',JSON.stringify(S))}
+function fmt(sec){sec=Math.max(0,Math.floor(sec||0));return String(Math.floor(sec/3600)).padStart(2,'0')+':'+String(Math.floor(sec%3600/60)).padStart(2,'0')}
+function hav(a,b){let p=Math.PI/180,R=3440.065,d1=(b.lat-a.lat)*p,d2=(b.lon-a.lon)*p,x=Math.sin(d1/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(d2/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+async function geo(q){let r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q='+encodeURIComponent(q));let j=await r.json();if(!j.length)throw Error('Location not found');return{lat:+j[0].lat,lon:+j[0].lon,name:j[0].display_name}}
+function show(id,b){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('sel'));if(b)b.classList.add('sel');if(id==='radius')setTimeout(()=>map.invalidateSize(),100);if(id==='log')draw()}
+function startShift(){if(!S.base)return alert('Set the normal reporting location first.');if(S.shiftStart)return alert('Shift is already running.');S.shiftStart=Date.now();S.duty='ON DUTY';S.statusStart=Date.now();addEvent('ON DUTY','Driver','Shift started');save();update()}
+function endShift(){if(!S.shiftStart)return alert('No active shift.');addEvent('OFF DUTY','Driver','Shift ended / released');S.shiftStart=null;S.duty='OFF DUTY';S.statusStart=null;save();update()}
+function duty(s){if(!S.shiftStart)return alert('Start shift first.');if(S.duty===s)return;S.duty=s;S.statusStart=Date.now();addEvent(s,'Driver','Duty-status change');save();update()}
+function addEvent(status,source,note){S.events.push({t:Date.now(),status,source,note,loc:S.pos?S.pos.lat.toFixed(4)+', '+S.pos.lon.toFixed(4):'GPS unavailable',pos:S.pos||null});save();renderEvents();draw()}
+function elapsed(){return S.shiftStart?(Date.now()-S.shiftStart)/1000:0}
+function driveUsed(){let d=S.driveUsed||0;if(S.duty==='DRIVING'&&S.statusStart)d+=(Date.now()-S.statusStart)/1000;return d}
+function update(){let sh=elapsed(),dr=driveUsed(),cyc=Number(S.cycleRemaining)||0;let d11=Math.max(0,LIMIT11-dr),d14=Math.max(0,LIMIT14-sh);$('driveLeft').textContent=fmt(d11);$('shiftLeft').textContent=fmt(d14);$('cycleLeft').textContent=cyc?cyc.toFixed(1)+' h':'--';$('b11').style.width=Math.min(100,dr/LIMIT11*100)+'%';$('b14').style.width=Math.min(100,sh/LIMIT14*100)+'%';$('bCycle').style.width=cyc?Math.min(100,(cyc/(S.cycleType==='60'?60:70))*100)+'%':'0%';$('current').textContent=S.duty||'OFF DUTY';$('todayOn').textContent=fmt(sh);['OFF DUTY','SLEEPER','DRIVING','ON DUTY'].forEach(x=>$(x).classList.remove('active'));if(S.duty)$(S.duty).classList.add('active');
+let miles=null;if(S.base&&S.pos){miles=hav(S.base,S.pos);$('miles').textContent=miles.toFixed(1);$('dist').textContent=miles.toFixed(1)+' NM';$('radiusHome').className='status '+(miles<=150?'good':'bad');$('radiusHome').textContent=miles<=150?'INSIDE 150 AIR MILES':'OUTSIDE 150 AIR MILES';$('elig').className='status '+(miles<=150?'good':'warn');$('elig').textContent=miles<=150?'🟢 Within 150-air-mile boundary':'🟠 Outside 150-air-mile boundary'}else{$('miles').textContent='--';$('radiusHome').className='status neutral';$('radiusHome').textContent='GPS OFF'}
+let alerts=[];if(miles!==null&&miles>=140&&miles<=150)alerts.push('Approaching the 150-air-mile boundary ('+miles.toFixed(1)+' NM).');if(miles!==null&&miles>150)alerts.push('Outside the 150-air-mile boundary.');if(dr>=36000)alerts.push('Approaching the 11-hour driving limit.');if(sh>=46800)alerts.push('Approaching the 14-hour window.');if(dr>=LIMIT11)alerts.push('11-hour driving limit reached.');if(sh>=LIMIT14)alerts.push('14-hour window reached.');$('alerts').innerHTML=alerts.length?alerts.map(a=>'<div class="alert">'+a+'</div>').join(''):'No current alerts.';$('break').className='status '+(dr>=28800?'warn':'neutral');$('break').textContent=dr>=28800?'Review break requirement':'No warning';
+$('rsDriver').textContent=S.driver||'—';$('rsCarrier').textContent=S.carrier||'—';$('rsUnit').textContent=S.unit||'—';$('rsDot').textContent=S.dot||'—';$('rsStatus').textContent=S.duty||'OFF DUTY';$('rsLoc').textContent=S.pos?S.pos.lat.toFixed(5)+', '+S.pos.lon.toFixed(5):'GPS unavailable';$('rsDrive').textContent=fmt(d11);$('rs14').textContent=fmt(d14);$('rsCycle').textContent=cyc?cyc.toFixed(1)+' h':'--';$('rsRadius').className='status '+(miles===null?'neutral':miles<=150?'good':'bad');$('rsRadius').textContent=miles===null?'GPS unavailable':(miles<=150?'Inside 150 air miles':'Outside 150 air miles');
+}
+function gps(){if(!navigator.geolocation)return;watch=navigator.geolocation.watchPosition(p=>{S.pos={lat:p.coords.latitude,lon:p.coords.longitude};if(!curMarker)curMarker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map);else curMarker.setLatLng([p.coords.latitude,p.coords.longitude]);update();save()},()=>{}, {enableHighAccuracy:true,maximumAge:3000,timeout:10000})}
+function drawBase(){if(!S.base)return;if(baseMarker)map.removeLayer(baseMarker);if(circle)map.removeLayer(circle);baseMarker=L.marker([S.base.lat,S.base.lon]).addTo(map);circle=L.circle([S.base.lat,S.base.lon],{radius:NM*FT,weight:3,fillOpacity:.12}).addTo(map);$('baseName').textContent=S.base.name;map.fitBounds(circle.getBounds())}
+async function saveBase(){try{S.base=await geo($('base').value.trim());$('baseMsg').className='status good';$('baseMsg').textContent='Reporting location saved.';save();drawBase();update()}catch(e){$('baseMsg').className='status bad';$('baseMsg').textContent=e.message}}
+function gpsBase(){navigator.geolocation.getCurrentPosition(p=>{S.base={lat:p.coords.latitude,lon:p.coords.longitude,name:'GPS reporting location'};$('base').value=S.base.name;save();drawBase();update()})}
+async function destination(){if(!S.base)return alert('Set reporting location first.');try{let p=await geo($('dest').value.trim()),m=hav(S.base,p);$('destResult').className='status '+(m<=150?'good':'bad');$('destResult').textContent=(m<=150?'INSIDE':'OUTSIDE')+' 150 air miles • '+m.toFixed(1)+' NM';map.setView([p.lat,p.lon],8)}catch(e){$('destResult').className='status bad';$('destResult').textContent=e.message}}
+function renderEvents(){$('events').innerHTML=S.events.slice().reverse().map(e=>'<tr><td>'+new Date(e.t).toLocaleString()+'</td><td>'+e.status+'</td><td>'+e.loc+'</td><td>'+e.source+'</td><td>'+e.note+'</td></tr>').join('')}
+function draw(){let c=$('chart'),ctx=c.getContext('2d'),w=c.clientWidth,h=c.clientHeight,d=devicePixelRatio;c.width=w*d;c.height=h*d;ctx.scale(d,d);ctx.clearRect(0,0,w,h);let rows={'OFF DUTY':0,'SLEEPER':1,'DRIVING':2,'ON DUTY':3},labels=Object.keys(rows);ctx.font='11px sans-serif';labels.forEach((l,i)=>{let y=42+i*60;ctx.fillStyle='#4b5563';ctx.fillText(l,6,y+4);ctx.strokeStyle='#e5e7eb';ctx.beginPath();ctx.moveTo(72,y);ctx.lineTo(w,y);ctx.stroke()});for(let i=0;i<=24;i++){let x=72+(w-82)*i/24;ctx.strokeStyle='#e5e7eb';ctx.beginPath();ctx.moveTo(x,15);ctx.lineTo(x,h-35);ctx.stroke();ctx.fillStyle='#6b7280';ctx.fillText(i,x-4,h-12)};for(let i=0;i<S.events.length;i++){let e=S.events[i],n=S.events[i+1],end=n?n.t:Date.now(),ds=new Date(e.t),de=new Date(end),st=ds.getHours()+ds.getMinutes()/60+ds.getSeconds()/3600,en=de.getHours()+de.getMinutes()/60+de.getSeconds()/3600;if(en<st)en=24;let y=42+(rows[e.status]||0)*60,x1=72+(w-82)*st/24,x2=72+(w-82)*en/24;ctx.strokeStyle='#111827';ctx.lineWidth=9;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke()}}
+function completeInspect(t){let miss=checks.filter((x,i)=>!$(t+i).checked);S.inspections=S.inspections||{};S.inspections[t]={time:Date.now(),passed:!miss.length,missing:miss};save();$(t+'Msg').className='status '+(miss.length?'bad':'good');$(t+'Msg').textContent=miss.length?'Incomplete: '+miss.join(', '):'✓ Completed'}
+function clearInspect(t){checks.forEach((x,i)=>$(t+i).checked=false);if(S.inspections)delete S.inspections[t];save();$(t+'Msg').className='status neutral';$(t+'Msg').textContent='Not completed.'}
+function buildChecks(){['pre','post'].forEach(t=>$(t).innerHTML=checks.map((x,i)=>'<label class="check"><input type="checkbox" id="'+t+i+'"> '+x+'</label>').join(''))}
+function addRecord(){if(!$('rdate').value)return alert('Select a date.');S.records.unshift({date:$('rdate').value,inn:$('rin').value,out:$('rout').value,hours:$('rhrs').value,note:$('rnote').value});save();renderRecords()}
+function renderRecords(){$('records').innerHTML=S.records.map(r=>'<tr><td>'+r.date+'</td><td>'+r.inn+'</td><td>'+r.out+'</td><td>'+r.hours+'</td><td>'+r.note+'</td></tr>').join('');$('recap').innerHTML=S.records.slice(0,8).map(r=>r.date+' — '+r.hours+' on-duty hours — '+(r.note||'')).join('<br>')||'No daily records yet.'}
+function exportCSV(){let rows=[['Date','In','Out','Hours','Notes'],...S.records.map(r=>[r.date,r.inn,r.out,r.hours,r.note])],csv=rows.map(r=>r.map(x=>'\"'+String(x||'').replaceAll('\"','\"\"')+'\"').join(',')).join('\\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='HOS150-daily-records.csv';a.click()}
+function saveSettings(){S.driver=$('driver').value;S.carrier=$('carrier').value;S.dot=$('dot').value;S.unit=$('unit').value;S.vin=$('vin').value;S.trailer=$('trailer').value;S.cycleType=$('cycleType').value;S.cycleRemaining=Number($('cycleRemaining').value)||0;save();update()}
+function init(){buildChecks();renderEvents();renderRecords();$('rdate').value=new Date().toISOString().slice(0,10);$('logDate').value=new Date().toISOString().slice(0,10);['driver','carrier','dot','unit','vin','trailer'].forEach(k=>{if(S[k])$(k).value=S[k]});if(S.cycleType)$('cycleType').value=S.cycleType;if(S.cycleRemaining)$('cycleRemaining').value=S.cycleRemaining;if(S.base){$('base').value=S.base.name;drawBase()}gps();update();setInterval(update,1000)}
+init();
+</script>
+</body>
+</html>
