@@ -47,3 +47,7 @@ The dashboard no longer incorrectly says "Set your normal reporting location" wh
 - reporting location saved + GPS unavailable, or
 - reporting location saved + live distance/inside/outside radius.
 The saved location is restored from local device storage on reload.
+
+
+## V8 location permission gate
+On app launch, V8 immediately checks phone location permission. If location is unavailable or permission is denied, the app shows a full-screen Location Services Required prompt with an Enable Location button and iPhone instructions. The app cannot switch iPhone Location Services on itself; the user must grant the browser/app permission.

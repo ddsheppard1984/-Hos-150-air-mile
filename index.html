@@ -35,6 +35,16 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
 <nav id="nav">
 <button class="sel" onclick="show('home',this)">Dashboard</button><button onclick="show('log',this)">24-Hour Log</button><button onclick="show('radius',this)">150-Mile Map</button><button onclick="show('inspect',this)">Inspections</button><button onclick="show('records',this)">Records</button><button onclick="show('roadside',this)">Roadside</button><button onclick="show('settings',this)">Settings</button>
 </nav>
+<div id="gpsGate" style="display:none;position:fixed;inset:0;background:#111827ee;z-index:5000;padding:24px;align-items:center;justify-content:center">
+<div style="background:white;max-width:430px;width:100%;border-radius:20px;padding:24px;text-align:center;box-shadow:0 20px 60px #0008">
+<div style="font-size:48px">📍</div>
+<h2 style="font-size:22px;margin:8px 0">Location Services Required</h2>
+<p style="color:#4b5563;line-height:1.5">HOS 150 ELD uses your phone's location to calculate the 150-air-mile radius and support automatic motion detection.</p>
+<div id="gpsGateMsg" class="status warn" style="text-align:left;margin:12px 0">Checking your location permission…</div>
+<button onclick="requestGPS()">ENABLE LOCATION</button>
+<button class="secondary" style="margin-top:8px" onclick="locationHelp()">HOW TO ENABLE IT</button>
+<p class="muted" style="margin-top:12px">Your browser may ask you to allow location access. The app cannot turn iPhone Location Services on by itself.</p>
+</div></div>
 <main>
 <section id="home" class="screen active">
 <div id="elig" class="status warn">Set your normal reporting location in Settings.</div>
@@ -193,7 +203,52 @@ if(S.base){
 let alerts=[];if(miles!==null&&miles>=140&&miles<=150)alerts.push('Approaching the 150-air-mile boundary ('+miles.toFixed(1)+' NM).');if(miles!==null&&miles>150)alerts.push('Outside the 150-air-mile boundary.');if(dr>=36000)alerts.push('Approaching the 11-hour driving limit.');if(sh>=46800)alerts.push('Approaching the 14-hour window.');if(dr>=LIMIT11)alerts.push('11-hour driving limit reached.');if(sh>=LIMIT14)alerts.push('14-hour window reached.');$('alerts').innerHTML=alerts.length?alerts.map(a=>'<div class="alert">'+a+'</div>').join(''):'No current alerts.';$('break').className='status '+(dr>=28800?'warn':'neutral');$('break').textContent=dr>=28800?'Review break requirement':'No warning';
 $('rsDriver').textContent=S.driver||'—';$('rsCarrier').textContent=S.carrier||'—';$('rsUnit').textContent=S.unit||'—';$('rsDot').textContent=S.dot||'—';$('rsStatus').textContent=S.duty||'OFF DUTY';$('rsLoc').textContent=S.pos?S.pos.lat.toFixed(5)+', '+S.pos.lon.toFixed(5):'GPS unavailable';$('rsDrive').textContent=fmt(d11);$('rs14').textContent=fmt(d14);$('rsCycle').textContent=cyc?cyc.toFixed(1)+' h':'--';$('rsRadius').className='status '+(miles===null?'neutral':miles<=150?'good':'bad');$('rsRadius').textContent=miles===null?'GPS unavailable':(miles<=150?'Inside 150 air miles':'Outside 150 air miles');
 }
+let gpsReady=false;
+function showGPSGate(msg){
+ $('gpsGate').style.display='flex';
+ $('gpsGateMsg').textContent=msg||'Location permission is required.';
+}
+function hideGPSGate(){
+ $('gpsGate').style.display='none';
+ gpsReady=true;
+}
+function requestGPS(){
+ if(!navigator.geolocation){
+   showGPSGate('This browser does not provide location services. Open the app in Safari on iPhone and allow location access.');
+   return;
+ }
+ $('gpsGateMsg').className='status blue';
+ $('gpsGateMsg').textContent='Requesting location permission…';
+ navigator.geolocation.getCurrentPosition(p=>{
+   S.pos={lat:p.coords.latitude,lon:p.coords.longitude};
+   save();
+   hideGPSGate();
+   gps();
+   update();
+ },err=>{
+   $('gpsGateMsg').className='status bad';
+   if(err.code===1) $('gpsGateMsg').textContent='Location permission was denied. Tap HOW TO ENABLE IT, then allow location access for this site.';
+   else if(err.code===2) $('gpsGateMsg').textContent='Your location could not be determined. Make sure iPhone Location Services and GPS are available.';
+   else $('gpsGateMsg').textContent='Location request timed out. Try again.';
+ });
+}
+function locationHelp(){
+ alert('On iPhone: Settings → Privacy & Security → Location Services → turn Location Services ON. Then find Safari (or your browser) and choose While Using the App. If this is installed to the Home Screen, reopen the app after changing the setting.');
+}
+function checkLocationOnOpen(){
+ if(!navigator.geolocation){showGPSGate('Location services are not available in this browser.');return;}
+ navigator.geolocation.getCurrentPosition(p=>{
+   S.pos={lat:p.coords.latitude,lon:p.coords.longitude};
+   save();
+   hideGPSGate();
+   gps();
+   update();
+ },err=>{
+   showGPSGate(err.code===1?'Location permission is off. Enable location access for HOS 150 ELD to continue.':'Location is currently unavailable. Please enable iPhone Location Services and try again.');
+ },{enableHighAccuracy:true,maximumAge:0,timeout:8000});
+}
 function gps(){
+ if(watch!==null){navigator.geolocation.clearWatch(watch);watch=null}
  if(!navigator.geolocation){$('motionState').className='status bad';$('motionState').textContent='Phone GPS unavailable';return}
  watch=navigator.geolocation.watchPosition(p=>{
    S.pos={lat:p.coords.latitude,lon:p.coords.longitude};
@@ -277,7 +332,7 @@ function saveSettings(){S.driver=$('driver').value;S.carrier=$('carrier').value;
 function init(){buildChecks();renderEvents();renderRecords();$('rdate').value=new Date().toISOString().slice(0,10);$('logDate').value=new Date().toISOString().slice(0,10);['driver','carrier','dot','unit','vin','trailer'].forEach(k=>{if(S[k])$(k).value=S[k]});if(S.cycleType)$('cycleType').value=S.cycleType;if(S.cycleRemaining)$('cycleRemaining').value=S.cycleRemaining;
 $('stopThreshold').value=S.stopThreshold||2;
 if(S.base){$('base').value=S.base.name;drawBase();$('baseMsg').className='status good';$('baseMsg').textContent='✓ Saved reporting location: '+S.base.name}
-gps();update();setInterval(()=>{
+checkLocationOnOpen();update();setInterval(()=>{
   if(S.shiftStart && S.duty==='DRIVING' && stopStarted){
     let threshold=Math.max(1,Number(S.stopThreshold)||2)*60000;
     if(Date.now()-stopStarted>=threshold){
