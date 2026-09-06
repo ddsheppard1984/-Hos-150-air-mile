@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#111827">
-<title>HOS 150 ELD</title>
+<title>HOS 150 ELD V8</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -31,11 +31,11 @@ table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;borde
 </style>
 </head>
 <body>
-<header><div class="head"><div><div class="brand">🚛 HOS 150 ELD</div><div class="sub">V3 DRIVER WORKFLOW PROTOTYPE • NOT A CERTIFIED ELD</div></div><div id="sync" class="pill">OFFLINE READY</div></div></header>
+<header><div class="head"><div><div class="brand">🚛 HOS 150 ELD</div><div class="sub">V8 • GPS + HOS + 150 AIR-MILE PROTOTYPE • NOT A CERTIFIED ELD</div></div><div id="sync" class="pill">OFFLINE READY</div></div></header>
 <nav id="nav">
 <button class="sel" onclick="show('home',this)">Dashboard</button><button onclick="show('log',this)">24-Hour Log</button><button onclick="show('radius',this)">150-Mile Map</button><button onclick="show('inspect',this)">Inspections</button><button onclick="show('records',this)">Records</button><button onclick="show('roadside',this)">Roadside</button><button onclick="show('settings',this)">Settings</button>
 </nav>
-<div id="gpsGate" style="display:none;position:fixed;inset:0;background:#111827ee;z-index:5000;padding:24px;align-items:center;justify-content:center">
+<div id="gpsGate" style="display:flex;position:fixed;inset:0;background:#111827ee;z-index:5000;padding:24px;align-items:center;justify-content:center">
 <div style="background:white;max-width:430px;width:100%;border-radius:20px;padding:24px;text-align:center;box-shadow:0 20px 60px #0008">
 <div style="font-size:48px">📍</div>
 <h2 style="font-size:22px;margin:8px 0">Location Services Required</h2>
@@ -332,7 +332,7 @@ function saveSettings(){S.driver=$('driver').value;S.carrier=$('carrier').value;
 function init(){buildChecks();renderEvents();renderRecords();$('rdate').value=new Date().toISOString().slice(0,10);$('logDate').value=new Date().toISOString().slice(0,10);['driver','carrier','dot','unit','vin','trailer'].forEach(k=>{if(S[k])$(k).value=S[k]});if(S.cycleType)$('cycleType').value=S.cycleType;if(S.cycleRemaining)$('cycleRemaining').value=S.cycleRemaining;
 $('stopThreshold').value=S.stopThreshold||2;
 if(S.base){$('base').value=S.base.name;drawBase();$('baseMsg').className='status good';$('baseMsg').textContent='✓ Saved reporting location: '+S.base.name}
-checkLocationOnOpen();update();setInterval(()=>{
+checkLocationOnOpen();setTimeout(()=>{if(!gpsReady)$('gpsGate').style.display='flex'},6000);update();setInterval(()=>{
   if(S.shiftStart && S.duty==='DRIVING' && stopStarted){
     let threshold=Math.max(1,Number(S.stopThreshold)||2)*60000;
     if(Date.now()-stopStarted>=threshold){
