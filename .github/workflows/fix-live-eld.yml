@@ -1,0 +1,55 @@
+name: Fix live ELD GPS gate
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-live-eld.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-live-eld:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Update live index
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Make the version visible so GitHub Pages/browser cache problems are obvious.
+          s = s.replace('V3 DRIVER WORKFLOW PROTOTYPE • NOT A CERTIFIED ELD',
+                        'V8 • GPS + HOS + 150 AIR-MILE PROTOTYPE • NOT A CERTIFIED ELD')
+
+          # Keep the existing full application, but make the GPS gate visible until
+          # the first successful location fix. This avoids a hidden gate if the
+          # browser's permission request hangs or times out.
+          s = s.replace('id="gpsGate" style="display:none;',
+                        'id="gpsGate" style="display:flex;')
+
+          # Add a build marker to the title if it is not already present.
+          s = s.replace('<title>HOS 150 ELD</title>', '<title>HOS 150 ELD V8</title>')
+
+          # Ensure the startup check has a visible timeout fallback.
+          old = "checkLocationOnOpen();update();setInterval(()=>{"
+          new = "checkLocationOnOpen();setTimeout(()=>{if(!gpsReady)$('gpsGate').style.display='flex'},6000);update();setInterval(()=>{"
+          s = s.replace(old, new)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit live update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Fix live ELD GPS startup prompt'
+          git push
