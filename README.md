@@ -1,23 +1,26 @@
-# HOS 150 ELD / HOS Prototype
+# HOS 150 ELD V2 Prototype
 
-Combined prototype for HOS duty-status logging and 150 air-mile radius monitoring.
+This is a ground-up prototype combining the requested:
+- ELD-style driver workflow
+- HOS clocks and duty statuses
+- 24-hour RODS-style graph
+- 150 air-mile radius map
+- live GPS position
+- reporting-location setup
+- destination radius checks
+- pre-trip/post-trip inspections
+- short-haul/daily records
+- previous-day recap
+- supporting-document register
+- driver certification workflow
+- driver/carrier/vehicle settings
+- HOS/radius warnings
+- CSV export
 
-Included:
-- OFF DUTY / SLEEPER / DRIVING / ON DUTY
-- 11-hour driving timer
-- 14-hour window timer
-- cycle-hours display
-- GPS tracking
-- 150 air-mile boundary
-- destination radius check
-- pre-trip/post-trip inspection
-- event history
-- short-haul records and CSV export
-- printable daily log reference
-- driver/carrier/unit settings
+IMPORTANT: This is NOT an FMCSA-certified or registered ELD. It is a development prototype. A compliant ELD must synchronize with the vehicle/engine to automatically capture required engine power, motion, miles and engine hours and must implement the required ELD event/data, security, audit, transfer and malfunction behavior.
 
-IMPORTANT: This is NOT an FMCSA-registered or certified ELD. It does not connect to the truck ECM/engine or implement all ELD technical requirements. It is a product prototype only.
+The 150-air-mile circle is an assistant feature. Being inside the circle alone does not establish eligibility for a short-haul exception.
 
-An actual commercial ELD would need automatic vehicle movement detection, vehicle/ECM connectivity, required ELD event/data fields, edit/audit controls, unidentified driving handling, malfunction handling, data transfer, security, and the applicable FMCSA certification/registration process.
+The prototype uses browser GPS and does not substitute for ECM-integrated vehicle data.
 
-Open index.html or deploy through GitHub Pages.
+Deploy with GitHub Pages or open locally for non-GPS testing. Browser GPS normally requires HTTPS or localhost.
