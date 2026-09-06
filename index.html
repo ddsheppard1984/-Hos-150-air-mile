@@ -1,114 +1,85 @@
-<!doctype html>
-<html lang="en"><head>
+<!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>HOS 150 Air-Mile Assistant</title>
-<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#111">
+<meta name="theme-color" content="#111"><title>HOS 150 ELD Prototype</title>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-header{background:#111;color:#fff;padding:17px 15px;position:sticky;top:0;z-index:1000}h1{font-size:21px;margin:0}.muted{opacity:.72;font-size:12px}
-main{max-width:1100px;margin:auto;padding:10px}.card{background:#fff;border-radius:15px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #00000012}
-h2{font-size:17px;margin:0 0 10px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-label{font-size:12px;font-weight:700;display:block;margin:8px 0 5px}input,select,button{width:100%;padding:11px;border:1px solid #d0d4d9;border-radius:10px;font-size:16px;background:#fff}button{background:#111;color:#fff;border:0;font-weight:700}button.alt{background:#e8e9ec;color:#111}.danger{background:#b51e18!important}.ok{background:#dff5e5;color:#17652d}.bad{background:#ffe1df;color:#8a1712}.warn{background:#fff0c5;color:#654d00}.status{padding:13px;border-radius:12px;margin-top:10px}.big{font-size:24px;font-weight:850}.metric{font-size:25px;font-weight:800}.small{font-size:12px;line-height:1.5;color:#5b6168}.row{display:flex;gap:8px}.row>*{flex:1}#map{height:48vh;min-height:330px;border-radius:12px}.hidden{display:none}.pill{display:inline-block;padding:5px 8px;border-radius:99px;background:#eee;font-size:12px;font-weight:700}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;white-space:nowrap}.clock{font-variant-numeric:tabular-nums}.tabs{display:flex;gap:6px;overflow:auto;margin:10px 0}.tabs button{white-space:nowrap;width:auto;padding:9px 13px}.section{display:none}.section.active{display:block}
-@media(max-width:700px){.grid,.grid3{grid-template-columns:1fr}.row{flex-direction:column}#map{height:52vh}}
-</style></head>
-<body>
-<header><h1>🚛 HOS 150 Air-Mile Assistant</h1><div class="muted">CDL property-carrier short-haul helper • 49 CFR §395.1(e)(1)</div></header>
-<main>
-<div class="tabs">
-<button onclick="tab('dashboard')">Dashboard</button><button onclick="tab('trip')">Trip</button><button onclick="tab('records')">Records</button><button onclick="tab('rules')">Rules</button>
-</div>
+*{box-sizing:border-box}body{margin:0;background:#eef0f2;color:#111;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:#111;color:#fff;padding:15px;position:sticky;top:0;z-index:1000}h1{font-size:20px;margin:0}.sub{font-size:11px;opacity:.7}
+main{max-width:1150px;margin:auto;padding:10px}.tabs{display:flex;gap:6px;overflow:auto;margin-bottom:10px}.tabs button{width:auto;white-space:nowrap}
+button,input,select,textarea{font:inherit;border-radius:10px;border:1px solid #cdd1d6;padding:11px;background:#fff}button{background:#111;color:#fff;border:0;font-weight:750;width:100%;cursor:pointer}
+.secondary{background:#e3e5e8;color:#111}.danger{background:#b51c16}.card{background:#fff;border-radius:15px;padding:14px;margin:10px 0;box-shadow:0 2px 10px #0001}
+h2{font-size:17px;margin:0 0 10px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.metric{font-size:25px;font-weight:850}.small{font-size:12px;color:#5c6269;line-height:1.45}.label{font-size:11px;font-weight:800;color:#666;text-transform:uppercase}
+.status{padding:13px;border-radius:12px;margin-top:9px;font-weight:750}.ok{background:#dff5e5;color:#17652d}.bad{background:#ffe0de;color:#8a1712}.warn{background:#fff0c7;color:#6a4e00}.neutral{background:#e9eaec;color:#333}
+.bigstatus{font-size:24px;text-align:center;padding:18px}.section{display:none}.section.active{display:block}.row{display:flex;gap:8px}.row>*{flex:1}
+.duty{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.duty button{min-height:62px;font-size:17px}.activeDuty{outline:4px solid #111}
+#map{height:45vh;min-height:320px;border-radius:12px}.bar{height:12px;background:#ddd;border-radius:20px;overflow:hidden}.bar>div{height:100%;width:0;background:#111}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}.tablewrap{overflow:auto}
+.check{display:flex;gap:8px;align-items:center;margin:8px 0}.check input{width:auto}
+@media(max-width:700px){.grid{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}.duty{grid-template-columns:repeat(2,1fr)}.row{flex-direction:column}}
+</style></head><body>
+<header><h1>🚛 HOS 150 ELD Prototype</h1><div class="sub">Combined HOS logbook + 150 air-mile radius assistant • Prototype, not FMCSA-certified ELD</div></header><main>
+<div class="tabs"><button onclick="tab('dash')">Dashboard</button><button onclick="tab('log')">Log</button><button onclick="tab('trip')">Trip</button><button onclick="tab('inspect')">Inspection</button><button onclick="tab('records')">Records</button><button onclick="tab('settings')">Settings</button></div>
 
-<section id="dashboard" class="section active">
-<div class="card"><h2>Reporting Location</h2>
-<label>Normal work reporting location</label><input id="baseText" placeholder="Address / city / ZIP">
-<div class="row"><button onclick="setBase()">Set location</button><button class="alt" onclick="gpsBase()">Use GPS</button></div>
-<div id="baseStatus" class="status warn">No reporting location saved.</div></div>
+<section id="dash" class="section active">
+<div class="card"><div id="qualification" class="status bigstatus warn">SET REPORTING LOCATION</div>
+<div class="grid" style="margin-top:10px"><div><div class="label">Air miles</div><div class="metric" id="airMiles">--</div></div><div><div class="label">14 hr remaining</div><div class="metric" id="c14">--:--</div></div><div><div class="label">Driving remaining</div><div class="metric" id="c11">--:--</div></div><div><div class="label">Cycle remaining</div><div class="metric" id="cycle">--</div></div></div>
+<div class="small" style="margin-top:10px">150 air miles = 172.6 statute miles. Distance is calculated as straight-line air distance.</div></div>
 
-<div class="card"><h2>Today's HOS</h2>
-<div class="grid3">
-<div><div class="small">14-hour window</div><div class="metric clock" id="shiftClock">--:--</div></div>
-<div><div class="small">Driving used</div><div class="metric clock" id="driveClock">00:00</div></div>
-<div><div class="small">Distance from base</div><div class="metric" id="dist">--</div></div>
-</div>
-<div id="hosStatus" class="status warn">Start your shift to begin tracking.</div>
-<div class="row" style="margin-top:10px"><button onclick="startShift()">Start shift</button><button class="danger" onclick="endShift()">End / release</button></div>
-<div class="row"><button class="alt" onclick="startDrive()">Start driving</button><button class="alt" onclick="stopDrive()">Stop driving</button></div>
-<div class="small" style="margin-top:9px">Timers are a driver aid. Do not operate the phone while driving. Have a passenger interact with it or pull over safely.</div></div>
+<div class="card"><h2>Duty status</h2><div class="duty"><button id="off" onclick="duty('OFF')">🟢 OFF DUTY</button><button id="sleeper" onclick="duty('SLEEPER')">🛏️ SLEEPER</button><button id="drive" onclick="duty('DRIVING')">🚛 DRIVING</button><button id="on" onclick="duty('ON DUTY')">🔧 ON DUTY</button></div>
+<div class="row" style="margin-top:9px"><button onclick="startShift()">Start shift</button><button class="danger" onclick="endShift()">End / release</button></div></div>
 
-<div class="card"><h2>Live 150 Air-Mile Boundary</h2><div id="liveStatus" class="status warn">GPS tracking off.</div><button onclick="toggleTracking()">Start / stop live GPS tracking</button></div>
-<div class="card"><div id="map"></div></div>
-</section>
+<div class="card"><h2>Today's clocks</h2><div class="grid2"><div><div class="label">14-hour window used</div><div class="bar"><div id="p14"></div></div><div class="small" id="p14text"></div></div><div><div class="label">11-hour driving used</div><div class="bar"><div id="p11"></div></div><div class="small" id="p11text"></div></div></div></div>
 
-<section id="trip" class="section">
-<div class="card"><h2>Check a destination</h2>
-<label>Destination</label><input id="destText" placeholder="Address / city / ZIP">
-<div class="row"><button onclick="checkDest()">Check</button><button class="alt" onclick="gpsDest()">Use GPS</button></div>
-<div id="destResult" class="status warn">Enter a destination.</div></div>
-</section>
+<div class="card"><h2>Live location</h2><div id="live" class="status neutral">GPS not running.</div><div class="row"><button onclick="toggleGPS()">Start/stop GPS</button><button class="secondary" onclick="centerMap()">Center map</button></div></div>
+<div class="card"><div id="map"></div></div></section>
 
-<section id="records" class="section">
-<div class="card"><h2>Short-haul time records</h2>
-<div class="grid">
-<div><label>Date</label><input type="date" id="recDate"></div><div><label>Time in</label><input type="time" id="recIn"></div>
-<div><label>Time out</label><input type="time" id="recOut"></div><div><label>Total on-duty hours</label><input type="number" id="recHours" step=".25" min="0" max="24"></div>
-</div>
-<label>Notes</label><input id="recNotes" placeholder="Optional">
-<div class="row"><button onclick="addRecord()">Save record</button><button class="alt" onclick="exportCSV()">Export CSV</button></div>
-<div class="small" style="margin-top:8px">This is a personal record aid. Your carrier remains responsible for required records and retention.</div>
-<div class="tablewrap"><table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>On duty</th><th>Notes</th><th></th></tr></thead><tbody id="recordsBody"></tbody></table></div></div>
+<section id="log" class="section"><div class="card"><h2>24-hour driver log</h2><div class="small">Duty changes are timestamped automatically. Use the grid as a paper-log reference. A certified ELD has additional required controls and data.</div>
+<div class="tablewrap"><table><thead><tr><th>Time</th><th>Status</th><th>Location</th><th>Note</th></tr></thead><tbody id="events"></tbody></table></div><button class="secondary" onclick="printLog()" style="margin-top:10px">Print / Save daily log</button></div></section>
 
-<div class="card"><h2>Days requiring RODS</h2><div class="small">Track days on which you did not qualify for the short-haul exception. The federal ELD rule has an 8-days-in-30 threshold when no other exception applies.</div>
-<label>Date</label><input type="date" id="rodDate"><button onclick="addROD()">Mark RODS-required day</button>
-<div id="rodList"></div></div>
-</section>
+<section id="trip" class="section"><div class="card"><h2>Destination / radius check</h2><input id="dest" placeholder="Address, city or ZIP"><div class="row" style="margin-top:8px"><button onclick="checkDestination()">Check destination</button><button class="secondary" onclick="gpsDestination()">Use current GPS</button></div><div id="destResult" class="status warn">Set your reporting location first.</div></div>
+<div class="card"><h2>Trip details</h2><div class="grid2"><div><label>Truck/unit</label><input id="truck"></div><div><label>Trailer</label><input id="trailer"></div><div><label>Starting odometer</label><input id="odoStart" type="number"></div><div><label>Ending odometer</label><input id="odoEnd" type="number"></div></div><label>Remarks</label><textarea id="remarks" rows="3" placeholder="Stops, fuel, loading/unloading, adverse conditions, etc."></textarea></div></section>
 
-<section id="rules" class="section">
-<div class="card"><h2>§395.1(e)(1) checklist</h2>
-<ul>
-<li>Stay within a <b>150 air-mile radius</b> (172.6 statute miles) of the normal work reporting location.</li>
-<li>Report and return to the normal work reporting location and be released within <b>14 consecutive hours</b>.</li>
-<li>Have at least <b>10 consecutive hours off duty</b> separating each 14-hour on-duty period.</li>
-<li>Do not exceed <b>11 hours driving</b>.</li>
-<li>When qualifying, the short-haul exception can allow a time record instead of a RODS/ELD for the day.</li>
-</ul>
-<div class="status warn"><b>Important:</b> The app cannot legally determine that you are exempt. If any qualification fails, standard HOS/RODS requirements may apply. Follow your carrier's safety policy and applicable federal/state rules.</div>
-<p class="small">Federal source: FMCSA Hours of Service and Interstate Truck Driver's Guide. The app uses 150 nautical miles = 172.6 statute miles for the geographic test.</p>
-</div>
-</section>
+<section id="inspect" class="section"><div class="card"><h2>Pre-trip inspection</h2><div id="preList"></div><div class="row"><button onclick="completeInspection('pre')">Complete pre-trip</button><button class="secondary" onclick="clearInspection('pre')">Clear</button></div><div id="preStatus" class="status neutral">Not completed.</div></div>
+<div class="card"><h2>Post-trip inspection</h2><div id="postList"></div><div class="row"><button onclick="completeInspection('post')">Complete post-trip</button><button class="secondary" onclick="clearInspection('post')">Clear</button></div><div id="postStatus" class="status neutral">Not completed.</div></div></section>
+
+<section id="records" class="section"><div class="card"><h2>Daily short-haul record</h2><div class="grid2"><div><label>Date</label><input id="rdate" type="date"></div><div><label>Time in</label><input id="rin" type="time"></div><div><label>Time out</label><input id="rout" type="time"></div><div><label>On-duty hours</label><input id="rh" type="number" step=".25"></div></div><label>Notes</label><input id="rn"><button onclick="saveRecord()">Save record</button><button class="secondary" onclick="exportCSV()" style="margin-top:8px">Export CSV</button><div class="tablewrap"><table><thead><tr><th>Date</th><th>In</th><th>Out</th><th>Hours</th><th>Notes</th></tr></thead><tbody id="records"></tbody></table></div></div>
+<div class="card"><h2>RODS-required days</h2><div class="small">Mark days when the short-haul exception was not used/available. This does not replace required records.</div><div class="row"><input id="rod" type="date"><button onclick="addROD()">Mark day</button></div><div id="rods"></div></div></section>
+
+<section id="settings" class="section"><div class="card"><h2>Driver / carrier</h2><div class="grid2"><div><label>Driver name</label><input id="driver"></div><div><label>Carrier</label><input id="carrier"></div><div><label>USDOT</label><input id="usdot"></div><div><label>Normal reporting location</label><input id="base" placeholder="Address / city / ZIP"></div></div><div class="row"><button onclick="saveSettings()">Save settings</button><button class="secondary" onclick="gpsBase()">Use GPS as base</button></div><div id="baseStatus" class="status neutral">No reporting location set.</div></div>
+<div class="card"><h2>Cycle</h2><div class="grid2"><div><label>Cycle type</label><select id="cycleType"><option value="60">60 hours / 7 days</option><option value="70">70 hours / 8 days</option></select></div><div><label>Cycle hours remaining</label><input id="cycleRemain" type="number" step=".1" value="60"></div></div><button onclick="saveCycle()">Save cycle</button></div>
+<div class="card"><h2>Prototype notice</h2><p class="small">This is a development prototype, not an FMCSA-registered/certified ELD. It does not connect to the truck ECM/engine and does not implement all required ELD controls. A commercial ELD would need vehicle connectivity, automatic movement detection, required event/data fields, edit/audit controls, unidentified driving handling, malfunction diagnostics, data transfer, security, and the applicable FMCSA certification/registration process.</p></div></section>
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const NM=150, MI=172.6, FT=1852;
-let S=JSON.parse(localStorage.getItem('hos150')||'{}');
-S.records=S.records||[];S.rods=S.rods||[];S.base=S.base||null;S.shiftStart=S.shiftStart||null;S.driveStart=S.driveStart||null;S.driveSeconds=S.driveSeconds||0;
-let map=L.map('map').setView([39.8283,-98.5795],4), circle, baseMarker, destMarker, watch=null;
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
-function save(){localStorage.setItem('hos150',JSON.stringify(S))}
-function tab(x){document.querySelectorAll('.section').forEach(e=>e.classList.remove('active'));document.getElementById(x).classList.add('active');setTimeout(()=>map.invalidateSize(),50)}
+const R_NM=150,R_MI=172.6,FT=1852;let S=JSON.parse(localStorage.getItem('hos150eld')||'{}');S.events=S.events||[];S.records=S.records||[];S.rods=S.rods||[];let map=L.map('map').setView([39.8283,-98.5795],4),circle=null,baseMarker=null,currentMarker=null,watch=null;
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);const checks=['Brakes','Tires / wheels','Lights / reflectors','Steering','Suspension','Coupling devices','Emergency equipment','Windshield / wipers','Mirrors','Horn','Fluids','Safety equipment'];
+function $(x){return document.getElementById(x)}function save(){localStorage.setItem('hos150eld',JSON.stringify(S))}function tab(x){document.querySelectorAll('.section').forEach(e=>e.classList.remove('active'));$(x).classList.add('active');setTimeout(()=>map.invalidateSize(),50)}
 function hav(a,b){let R=3440.065,p=Math.PI/180,d1=(b.lat-a.lat)*p,d2=(b.lon-a.lon)*p,x=Math.sin(d1/2)**2+Math.cos(a.lat*p)*Math.cos(b.lat*p)*Math.sin(d2/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
-async function geo(q){let r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q='+encodeURIComponent(q));let j=await r.json();if(!j.length)throw Error('Location not found');return {lat:+j[0].lat,lon:+j[0].lon,name:j[0].display_name}}
-function drawBase(){if(baseMarker)map.removeLayer(baseMarker);if(circle)map.removeLayer(circle);baseMarker=L.marker([S.base.lat,S.base.lon]).addTo(map).bindPopup('Normal reporting location');circle=L.circle([S.base.lat,S.base.lon],{radius:NM*FT,weight:3,fillOpacity:.12}).addTo(map);map.fitBounds(circle.getBounds())}
-async function setBase(){let q=baseText.value.trim();if(!q)return;try{S.base=await geo(q);baseText.value=S.base.name;save();drawBase();baseStatus.className='status ok';baseStatus.textContent='Reporting location saved.'}catch(e){baseStatus.className='status bad';baseStatus.textContent=e.message}}
-function gpsBase(){navigator.geolocation.getCurrentPosition(p=>{S.base={lat:p.coords.latitude,lon:p.coords.longitude,name:'GPS reporting location'};baseText.value=S.base.name;save();drawBase();baseStatus.className='status ok';baseStatus.textContent='GPS reporting location saved.'},()=>alert('GPS unavailable or permission denied'),{enableHighAccuracy:true})}
-function point(p,name){if(!S.base)return alert('Set the reporting location first');let nm=hav(S.base,p),mi=nm*1.15077945;return {nm,mi,name}}
-function showPoint(p,name){if(destMarker)map.removeLayer(destMarker);destMarker=L.marker([p.lat,p.lon]).addTo(map).bindPopup(name).openPopup();let x=point(p,name);destResult.className='status '+(x.nm<=NM?'ok':'bad');destResult.innerHTML='<b>'+(x.nm<=NM?'✓ INSIDE 150 AIR MILES':'✕ OUTSIDE 150 AIR MILES')+'</b><br>'+x.nm.toFixed(1)+' air miles / '+x.mi.toFixed(1)+' statute miles from reporting location.'}
-async function checkDest(){try{let p=await geo(destText.value.trim());destText.value=p.name;showPoint(p,p.name)}catch(e){destResult.className='status bad';destResult.textContent=e.message}}
-function gpsDest(){navigator.geolocation.getCurrentPosition(p=>showPoint({lat:p.coords.latitude,lon:p.coords.longitude},'Current GPS location'),()=>alert('GPS unavailable'),{enableHighAccuracy:true})}
-function startShift(){if(!S.base)return alert('Set reporting location first');if(S.shiftStart)return alert('Shift already running');S.shiftStart=Date.now();S.driveSeconds=0;S.driveStart=null;save();update()}
-function endShift(){if(!S.shiftStart)return; if(S.driveStart)stopDrive();let start=new Date(S.shiftStart),out=new Date();let hrs=(out-S.shiftStart)/3600000; if(hrs>14)hosStatus.className='status bad'; S.lastShift={start:S.shiftStart,end:Date.now(),hours:hrs}; S.shiftStart=null;save();update(); alert('Shift ended. Add the required time record in Records.')}
-function startDrive(){if(!S.shiftStart)return alert('Start shift first');if(!S.driveStart)S.driveStart=Date.now();save()}
-function stopDrive(){if(S.driveStart){S.driveSeconds+=(Date.now()-S.driveStart)/1000;S.driveStart=null;save()}}
-function fmt(sec){sec=Math.max(0,Math.floor(sec));return String(Math.floor(sec/3600)).padStart(2,'0')+':'+String(Math.floor(sec%3600/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}
-function update(){let now=Date.now(),shift=S.shiftStart?(now-S.shiftStart)/1000:0,drive=S.driveSeconds+(S.driveStart?(now-S.driveStart)/1000:0);shiftClock.textContent=fmt(Math.max(0,14*3600-shift));driveClock.textContent=fmt(drive);if(S.base&&S.current){let x=point(S.current);dist.textContent=x.nm.toFixed(1)+' nm';let inside=x.nm<=NM;hosStatus.className='status '+(inside&&shift<=14*3600&&drive<=11*3600?'ok':'bad');hosStatus.innerHTML=(inside?'✓ Inside 150-air-mile area':'✕ Outside 150-air-mile area')+'<br>Shift remaining: '+fmt(14*3600-shift)+' • Driving remaining: '+fmt(11*3600-drive);liveStatus.className='status '+(inside?'ok':'bad');liveStatus.textContent=inside?'GPS: inside radius • '+x.nm.toFixed(1)+' air miles':'GPS: OUTSIDE radius • '+x.nm.toFixed(1)+' air miles'}}
-setInterval(update,1000)
-function toggleTracking(){if(watch){navigator.geolocation.clearWatch(watch);watch=null;liveStatus.textContent='GPS tracking off.';return}watch=navigator.geolocation.watchPosition(p=>{S.current={lat:p.coords.latitude,lon:p.coords.longitude};save();if(S.base){let x=point(S.current);if(!destMarker)destMarker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map);else destMarker.setLatLng([p.coords.latitude,p.coords.longitude]);destMarker.bindPopup('Current GPS').openPopup()}update()},e=>liveStatus.textContent='GPS error: '+e.message,{enableHighAccuracy:true,maximumAge:5000,timeout:10000})}
-function addRecord(){let d={date:recDate.value,in:recIn.value,out:recOut.value,hours:recHours.value,notes:recNotes.value};if(!d.date)return;S.records.unshift(d);save();renderRecords()}
-function renderRecords(){recordsBody.innerHTML=S.records.map((r,i)=>'<tr><td>'+r.date+'</td><td>'+r.in+'</td><td>'+r.out+'</td><td>'+r.hours+'</td><td>'+r.notes+'</td><td><button onclick="delRec('+i+')">×</button></td></tr>').join('')}
-function delRec(i){S.records.splice(i,1);save();renderRecords()}
-function exportCSV(){let rows=[['Date','Time in','Time out','On-duty hours','Notes'],...S.records.map(r=>[r.date,r.in,r.out,r.hours,r.notes])];let csv=rows.map(r=>r.map(x=>'"'+String(x||'').replaceAll('"','""')+'"').join(',')).join('\\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='HOS-short-haul-records.csv';a.click()}
-function addROD(){let d=rodDate.value;if(!d)return;S.rods=[...new Set([d,...S.rods])].sort().reverse();save();renderROD()}
-function renderROD(){rodList.innerHTML='<p><b>'+S.rods.length+'</b> RODS-required day(s) recorded.</p>'+S.rods.map((d,i)=>'<span class="pill">'+d+' <button style="width:auto;padding:2px 5px" onclick="S.rods.splice('+i+',1);save();renderROD()">×</button></span> ').join('')}
-function init(){if(S.base){baseText.value=S.base.name;drawBase();baseStatus.className='status ok';baseStatus.textContent='Reporting location saved.'}recDate.value=new Date().toISOString().slice(0,10);rodDate.value=recDate.value;renderRecords();renderROD();update();if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js')}
-init()
+async function geo(q){let r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q='+encodeURIComponent(q)),j=await r.json();if(!j.length)throw Error('Location not found');return{lat:+j[0].lat,lon:+j[0].lon,name:j[0].display_name}}
+function drawBase(){if(!S.baseLoc)return;if(baseMarker)map.removeLayer(baseMarker);if(circle)map.removeLayer(circle);baseMarker=L.marker([S.baseLoc.lat,S.baseLoc.lon]).addTo(map).bindPopup('Normal work reporting location');circle=L.circle([S.baseLoc.lat,S.baseLoc.lon],{radius:R_NM*FT,weight:3,fillOpacity:.11}).addTo(map);map.fitBounds(circle.getBounds())}
+async function saveSettings(){try{if($('base').value.trim()){S.baseLoc=await geo($('base').value.trim());$('base').value=S.baseLoc.name}S.driver=$('driver').value;S.carrier=$('carrier').value;S.usdot=$('usdot').value;save();drawBase();$('baseStatus').className='status ok';$('baseStatus').textContent='Reporting location saved.'}catch(e){$('baseStatus').className='status bad';$('baseStatus').textContent=e.message}}
+function gpsBase(){navigator.geolocation.getCurrentPosition(p=>{S.baseLoc={lat:p.coords.latitude,lon:p.coords.longitude,name:'GPS reporting location'};$('base').value='GPS reporting location';save();drawBase();$('baseStatus').className='status ok';$('baseStatus').textContent='GPS reporting location saved.'},()=>alert('GPS unavailable'),{enableHighAccuracy:true})}
+function startShift(){if(!S.baseLoc)return alert('Set reporting location first');if(S.shiftStart)return alert('Shift already running');S.shiftStart=Date.now();S.driveSeconds=0;S.duty='ON DUTY';S.events.push({t:Date.now(),s:'ON DUTY',loc:locText(),note:'Shift started'});save();renderEvents();update()}
+function endShift(){if(!S.shiftStart)return alert('No active shift');if(S.duty==='DRIVING')stopDrive();S.events.push({t:Date.now(),s:'OFF',loc:locText(),note:'Shift ended / released'});S.shiftStart=null;S.duty='OFF';save();renderEvents();update()}
+function duty(s){if(!S.shiftStart)return alert('Start shift first');if(S.duty===s)return;if(S.duty==='DRIVING'&&S.dutyStart)S.driveSeconds=(S.driveSeconds||0)+(Date.now()-S.dutyStart)/1000;S.dutyStart=s==='DRIVING'?Date.now():null;S.duty=s;S.events.push({t:Date.now(),s,loc:locText(),note:''});save();renderEvents();update()}
+function locText(){return S.current?S.current.lat.toFixed(4)+', '+S.current.lon.toFixed(4):'Unavailable'}
+function fmt(sec){sec=Math.max(0,Math.floor(sec||0));return String(Math.floor(sec/3600)).padStart(2,'0')+':'+String(Math.floor(sec%3600/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}
+function update(){let now=Date.now(),shift=S.shiftStart?(now-S.shiftStart)/1000:0,drive=(S.driveSeconds||0)+(S.duty==='DRIVING'&&S.dutyStart?(now-S.dutyStart)/1000:0);$('c14').textContent=fmt(50400-shift);$('c11').textContent=fmt(39600-drive);let cyc=Number(S.cycleRemain??(S.cycleType==='70'?70:60));$('cycle').textContent=cyc.toFixed(1)+' h';$('p14').style.width=Math.min(100,shift/50400*100)+'%';$('p11').style.width=Math.min(100,drive/39600*100)+'%';$('p14text').textContent=fmt(shift)+' used of 14:00';$('p11text').textContent=fmt(drive)+' used of 11:00';if(S.baseLoc&&S.current){let nm=hav(S.baseLoc,S.current);$('airMiles').textContent=nm.toFixed(1);let inside=nm<=R_NM,good=inside&&shift<=50400&&drive<=39600;$('qualification').className='status bigstatus '+(good?'ok':'bad');$('qualification').textContent=good?'🟢 INSIDE 150 AIR MILES':'🔴 HOS / RADIUS ATTENTION';$('live').className='status '+(inside?'ok':'bad');$('live').textContent=inside?'Inside radius • '+nm.toFixed(1)+' air miles from base':'OUTSIDE 150 AIR MILES • '+nm.toFixed(1)+' air miles from base'}['off','sleeper','drive','on'].forEach(x=>$(x).classList.remove('activeDuty'));if(S.duty==='OFF')$('off').classList.add('activeDuty');if(S.duty==='SLEEPER')$('sleeper').classList.add('activeDuty');if(S.duty==='DRIVING')$('drive').classList.add('activeDuty');if(S.duty==='ON DUTY')$('on').classList.add('activeDuty')}
+function toggleGPS(){if(watch){navigator.geolocation.clearWatch(watch);watch=null;$('live').textContent='GPS stopped.';return}watch=navigator.geolocation.watchPosition(p=>{S.current={lat:p.coords.latitude,lon:p.coords.longitude};save();if(!currentMarker)currentMarker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map);else currentMarker.setLatLng([p.coords.latitude,p.coords.longitude]);update()},e=>$('live').textContent='GPS error: '+e.message,{enableHighAccuracy:true,maximumAge:3000,timeout:10000})}
+function centerMap(){if(S.current)map.setView([S.current.lat,S.current.lon],12);else if(S.baseLoc)map.setView([S.baseLoc.lat,S.baseLoc.lon],8)}
+async function checkDestination(){if(!S.baseLoc)return alert('Set reporting location first');try{let p=await geo($('dest').value.trim()),nm=hav(S.baseLoc,p),mi=nm*1.15077945;$('destResult').className='status '+(nm<=R_NM?'ok':'bad');$('destResult').innerHTML=(nm<=R_NM?'✓ INSIDE 150 AIR MILES':'✕ OUTSIDE 150 AIR MILES')+'<br>'+nm.toFixed(1)+' air miles / '+mi.toFixed(1)+' statute miles';map.setView([p.lat,p.lon],8)}catch(e){$('destResult').className='status bad';$('destResult').textContent=e.message}}
+function gpsDestination(){if(!S.current)return alert('Start GPS first');let nm=hav(S.baseLoc,S.current);$('destResult').className='status '+(nm<=R_NM?'ok':'bad');$('destResult').textContent=(nm<=R_NM?'✓ INSIDE 150 AIR MILES':'✕ OUTSIDE 150 AIR MILES')+' • '+nm.toFixed(1)+' air miles'}
+function renderEvents(){$('events').innerHTML=S.events.slice().reverse().map(e=>'<tr><td>'+new Date(e.t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+'</td><td><b>'+e.s+'</b></td><td>'+e.loc+'</td><td>'+e.note+'</td></tr>').join('')}
+function buildChecks(){['pre','post'].forEach(t=>$(t+'List').innerHTML=checks.map((x,i)=>'<label class="check"><input type="checkbox" id="'+t+i+'"> '+x+'</label>').join(''))}
+function completeInspection(t){let missing=[];checks.forEach((x,i)=>{if(!$(`${t}${i}`).checked)missing.push(x)});S[t+'Inspection']={time:Date.now(),passed:!missing.length,missing};save();$(t+'Status').className='status '+(missing.length?'bad':'ok');$(t+'Status').textContent=missing.length?'Incomplete — check: '+missing.join(', '):'✓ Completed — no unchecked items.'}
+function clearInspection(t){checks.forEach((x,i)=>$(`${t}${i}`).checked=false);delete S[t+'Inspection'];save();$(t+'Status').className='status neutral';$(t+'Status').textContent='Not completed.'}
+function saveRecord(){let r={date:$('rdate').value,in:$('rin').value,out:$('rout').value,hours:$('rh').value,notes:$('rn').value};if(!r.date)return;S.records.unshift(r);save();renderRecords()}
+function renderRecords(){$('records').innerHTML=S.records.map(r=>'<tr><td>'+r.date+'</td><td>'+r.in+'</td><td>'+r.out+'</td><td>'+r.hours+'</td><td>'+r.notes+'</td></tr>').join('')}
+function exportCSV(){let rows=[['Date','Time in','Time out','On duty hours','Notes'],...S.records.map(r=>[r.date,r.in,r.out,r.hours,r.notes])];let csv=rows.map(r=>r.map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(',')).join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='HOS150-records.csv';a.click()}
+function addROD(){let d=$('rod').value;if(!d)return;S.rods=[...new Set([d,...S.rods])].sort().reverse();save();renderROD()}function renderROD(){$('rods').innerHTML=S.rods.map(x=>'<span style="display:inline-block;padding:6px;margin:4px;background:#eee;border-radius:8px">'+x+'</span>').join('')}
+function saveCycle(){S.cycleType=$('cycleType').value;S.cycleRemain=Number($('cycleRemain').value);save();update()}
+function printLog(){let w=window.open('','_blank');w.document.write('<html><head><title>HOS Daily Log</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:7px}</style></head><body><h1>HOS 150 Daily Log</h1><p>Driver: '+(S.driver||'')+' | Carrier: '+(S.carrier||'')+'</p><table>'+document.querySelector('#log table').outerHTML+'</table><p>Prototype reference only — not a certified ELD output.</p></body></html>');w.document.close();w.print()}
+function init(){buildChecks();renderEvents();renderRecords();renderROD();let d=new Date().toISOString().slice(0,10);$('rdate').value=d;$('rod').value=d;if(S.driver)$('driver').value=S.driver;if(S.carrier)$('carrier').value=S.carrier;if(S.usdot)$('usdot').value=S.usdot;if(S.baseLoc){$('base').value=S.baseLoc.name;drawBase();$('baseStatus').className='status ok';$('baseStatus').textContent='Reporting location saved.'}if(S.cycleType){$('cycleType').value=S.cycleType;$('cycleRemain').value=S.cycleRemain}update()}setInterval(update,1000);init();
 </script></body></html>
