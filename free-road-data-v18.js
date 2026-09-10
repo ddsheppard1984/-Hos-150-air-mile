@@ -1,4 +1,5 @@
 (()=>{'use strict';
+/* V24 compatibility cleanup: free public-data engine only. The old V20 loader was removed because it overwrote the V24 app header and loaded the retired driver-os-v20.js after startup. */
 const KEY='hos150v13';
 const $=id=>document.getElementById(id);
 const read=()=>JSON.parse(localStorage.getItem(KEY)||'{}');
@@ -18,5 +19,4 @@ async function scanWZDx(){const items=await wzdx();if(!items.length)return;const
 function install(){addFreeSettings();if(!window.__freeRoadTimer){window.__freeRoadTimer=setInterval(()=>{if($('route')?.classList.contains('active')){freeRoadScan();scanWZDx()}},10*60*1000)};if($('route')?.classList.contains('active')){freeRoadScan();scanWZDx()}}
 window.freeRoadScan=freeRoadScan;window.scanWZDx=scanWZDx;
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(install,1200));else setTimeout(install,1200);
-if(!window.__driverOS20Loader){window.__driverOS20Loader=1;const load=()=>{if(window.__driverOS20)return;window.__driverOS20=1;document.title='HOS 150 Driver Companion V20.0';const small=document.querySelector('header small');if(small)small.textContent='V20.0 • HOS + GPS + 150 AIR-MILE + DRIVER OS + LIVE ROUTE + WEATHER + ELD';const s=document.createElement('script');s.src='driver-os-v20.js?v=20.0';s.defer=true;document.head.appendChild(s)};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(load,900));else setTimeout(load,900)}
 })();
