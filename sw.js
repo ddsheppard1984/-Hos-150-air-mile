@@ -1,4 +1,4 @@
-const CACHE='hos150-app-v33-0';
+const CACHE='hos150-app-v35-0';
 const APP_SHELL=['./','./index.html','./manifest.webmanifest','./style.css','./theme-future-v1.css','./pwa-v25.js','./trucknav-v28.js','./nav-saved-locations-v23.js','./customer-routing-v31.js','./customer-intel-v32.js','./gps-weather-fix-v33.js','./v31-brand-fix.js','./app-icon.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(APP_SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
