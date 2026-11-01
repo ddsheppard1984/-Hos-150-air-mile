@@ -24,6 +24,8 @@ jobs:
           node --check v37-driver-workspace.js
           node --check server-sync.js
           node --check sw.js
+          bash -n deploy-v37-guarded.sh
+          grep -q 'rollback' deploy-v37-guarded.sh
           python3 - <<'PY'
           from pathlib import Path
           s=Path('index.html').read_text()
