@@ -1,0 +1,43 @@
+name: HOS150 v37 mobile navigation and offline safety checks
+on:
+  push:
+    branches:
+      - feature/hos150-v37-squeak-ui-20261031
+    paths:
+      - 'index.html'
+      - 'sw.js'
+      - 'server-sync.js'
+      - 'v37-driver-workspace.js'
+      - '.github/workflows/hos150-v37-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify source syntax and safety
+        run: |
+          set -euo pipefail
+          node --check v37-driver-workspace.js
+          node --check server-sync.js
+          node --check sw.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          js=Path('v37-driver-workspace.js').read_text()
+          sw=Path('sw.js').read_text()
+          sync=Path('server-sync.js').read_text()
+          assert s.count('v37-driver-workspace.js?v=37.0') == 1
+          assert s.count('data-tab="hub"') == 1
+          assert 'v37-driver-workspace.js' in sw
+          assert "u.pathname.startsWith('/api/')" in sw
+          assert "hos150_local_recovery_" in sync
+          assert "if(dirty){schedule();return}" in sync
+          for tab in ['dispatch','finance','compliance','maintenanceCenter','safety','ifta','documents','reports']:
+              assert "'"+tab+"'" in js
+          assert 'NOT a certified ELD' in js
+          print('HOS v37 source gates: PASS')
+          PY
