@@ -16,12 +16,12 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.0",
-          "buildVersion": "103",
-          "date": "2026-11-01T01:42:08+00:00",
-          "localizedDescription": "Secure access without phone Tailscale; native location control and diagnostics",
+          "version": "1.0.1",
+          "buildVersion": "104",
+          "date": "2026-11-01T01:43:41+00:00",
+          "localizedDescription": "Unique truck/logbook Home Screen icon, secure cloud access and native GPS",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 68135,
+          "size": 2727651,
           "minOSVersion": "17.0"
         }
       ]
