@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.7",
-          "buildVersion": "111",
-          "date": "2026-11-01T15:08:43+00:00",
-          "localizedDescription": "Fixes the iPhone header and toolbar overlapping the ELD recovery screen. Header and navigation scroll normally, the iPhone web area starts below native controls, and export of phone/server logs remains non-destructive.",
-          "webBuildId": "2026-11-01-v38.1-header-flowfix4",
+          "version": "1.0.8",
+          "buildVersion": "112",
+          "date": "2026-11-01T15:24:36+00:00",
+          "localizedDescription": "Adds one-tap safe OFF DUTY reconciliation. Compares phone/server histories, backs up both, synchronizes only compatible records, verifies the server and preserves all original driving periods. If records differ, it leaves both unchanged and asks for recovery export.",
+          "webBuildId": "2026-11-01-v38.1-safe-offduty-reconcile",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2749667,
+          "size": 2752916,
           "minOSVersion": "17.0"
         }
       ]
