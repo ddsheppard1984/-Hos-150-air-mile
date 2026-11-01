@@ -16,12 +16,12 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.2",
-          "buildVersion": "106",
-          "date": "2026-11-01T02:04:27+00:00",
-          "localizedDescription": "Optional Face ID app lock, native HOS alerts and clearer driver pages",
+          "version": "1.0.3",
+          "buildVersion": "107",
+          "date": "2026-11-01T02:52:26+00:00",
+          "localizedDescription": "V38 driver workspace compatibility, one-tap Logs shortcut and Refresh, Face ID and alerts",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2742857,
+          "size": 2746438,
           "minOSVersion": "17.0"
         }
       ]
