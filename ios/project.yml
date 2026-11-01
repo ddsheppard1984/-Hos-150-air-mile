@@ -1,0 +1,27 @@
+name: HOS150
+options:
+  bundleIdPrefix: com.houseofsqueak
+settings:
+  base:
+    SWIFT_VERSION: '5.10'
+    IPHONEOS_DEPLOYMENT_TARGET: '17.0'
+    TARGETED_DEVICE_FAMILY: '1'
+    MARKETING_VERSION: '1.0.0'
+    CURRENT_PROJECT_VERSION: '100'
+targets:
+  HOS150:
+    type: application
+    platform: iOS
+    sources:
+      - path: HOS150
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.houseofsqueak.hos150
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: HOS 150
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: HOS 150 needs your location for requested map and distance tools.
+        INFOPLIST_KEY_NSCameraUsageDescription: HOS 150 uses the camera only for user-requested inspection photos.
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: HOS 150 requests microphone access only for user-initiated functions.
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UIRequiresFullScreen: 'NO'
+        ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: 'NO'
