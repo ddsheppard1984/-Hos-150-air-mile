@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.10",
-  "webVersion": "39.0",
-  "webBuildId": "2026-11-01-v39.0",
-  "webHotfix": "v39-cockpit.js?v=39.0",
-  "releaseNotes": "V39 Driver Cockpit: consolidated navigation, large advisory HOS clocks with accurate not-started and incomplete-history states, break attention, active delivery and sync status. Read-only dashboard keeps existing driving logs and recovery controls. Matching web deployment required.",
+  "iosVersion": "1.0.11",
+  "webVersion": "39.1",
+  "webBuildId": "2026-11-01-v39.1",
+  "webHotfix": "pwa-v25.js?v=39.1",
+  "releaseNotes": "V39.1 removes the redundant INSTALL APP banner from the installed SideStore iPhone app and HOS150 web view. Preserves the V39 cockpit, ELD live graph, GPS, offline records, and safe sync.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
