@@ -17,11 +17,11 @@
       "versions": [
         {
           "version": "1.0.0",
-          "buildVersion": "102",
-          "date": "2026-11-01T01:41:30+00:00",
+          "buildVersion": "103",
+          "date": "2026-11-01T01:42:08+00:00",
           "localizedDescription": "Secure access without phone Tailscale; native location control and diagnostics",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 67290,
+          "size": 68135,
           "minOSVersion": "17.0"
         }
       ]
