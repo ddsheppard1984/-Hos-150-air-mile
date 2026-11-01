@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.14",
-          "buildVersion": "118",
-          "date": "2026-11-01T17:23:47+00:00",
-          "localizedDescription": "V40.1 fixes blank Live Route screen: prevents legacy V17 from replacing the truck navigator, repairs the in-app truck map and profile view, and keeps ELD data and Lenovo truck routing unchanged.",
-          "webBuildId": "2026-11-01-v40.1-navfix",
+          "version": "1.0.15",
+          "buildVersion": "119",
+          "date": "2026-11-01T17:33:55+00:00",
+          "localizedDescription": "V40.2 fixes the blank Truck Navigation tab by preserving the selected screen, repairing late script changes and disabling the obsolete V39 navigation script in the native app. Preserves truck routing and ELD history.",
+          "webBuildId": "2026-11-01-v40.2-active-nav",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2768980,
+          "size": 2768338,
           "minOSVersion": "17.0"
         }
       ]
