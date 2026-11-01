@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.12",
-  "webVersion": "39.2",
-  "webBuildId": "2026-11-01-v39.2",
-  "webHotfix": "v39-nav-clean.js?v=39.2",
-  "releaseNotes": "V39.2: simplified in-app destination search and map, one-tap Apple Maps/Waze handoff, saved customer locations and native fallback. Apple/Waze are car routes, not validated truck routes. HOS data remains unchanged.",
+  "iosVersion": "1.0.13",
+  "webVersion": "40.0",
+  "webBuildId": "2026-11-01-v40.0",
+  "webHotfix": "v40-truck-nav.js?v=40.0",
+  "releaseNotes": "V40 in-app truck-profile navigation: full HOS150 map, turn guidance, vehicle height/width/length/weight/axles/hazmat, optional speech, Lenovo Valhalla private router (Maine coverage), and preserved ELD histories. Actual routing service deployment required.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }

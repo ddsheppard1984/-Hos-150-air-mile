@@ -1114,6 +1114,289 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (()=>{if(!document.getElementById('hosNavStyleV39')){const s=document.createElement('style');s.id='hosNavStyleV39';s.textContent="/* V39.2 clean navigation UI: no simulated truck-routing claims. */\n#route.n39-route{background:#071521!important;color:#eaf7ff!important;padding:0!important;border-radius:17px;overflow:hidden}\n.n39-nav-top{padding:18px 15px 12px;background:linear-gradient(130deg,#112c49,#0a182c)}\n.n39-nav-top h2{color:#fff;font-size:26px;line-height:1.1;margin:0}\n.n39-nav-top p{color:#b5cfdf;margin:5px 0 14px;font-size:13px}\n.n39-nav-top label{display:block;font-size:12px;color:#b9d2e4;margin-bottom:5px}\n#route #n28dest{display:block;width:100%;min-height:54px;padding:12px 14px;border-radius:12px;background:#fff;color:#10213a;font-size:16px;border:2px solid #6bd5f1}\n.n39-row,.n39-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:11px}\n#route .n39-row button{min-height:49px;border:1px solid #3a83a8;background:#163c5c;color:#fff;border-radius:12px;font-weight:850;font-size:13px;white-space:normal}\n.n39-status{min-height:22px;font-size:12px;line-height:1.4;overflow-wrap:anywhere}\n.n39-map{height:min(43vh,390px);min-height:230px;background:#16283c}\n.n39-handoff{padding:13px 15px 18px;background:#0c1e31}\n.n39-handoff h3{font-size:17px;color:#fff;margin:2px 0 4px}\n.n39-action{display:flex;align-items:center;justify-content:center;min-height:55px;background:#1a5c83;color:#fff!important;border:1px solid #61c4e3;border-radius:13px;font-size:16px;font-weight:900;text-decoration:none!important;line-height:1.2;text-align:center}\n.n39-action:focus-visible{outline:3px solid #b0efff}\n.n39-warning{margin:13px 0 0;padding:11px 13px;background:#442f15;color:#ffe4a0;border-radius:11px;font-size:12px;line-height:1.48;border:1px solid #886b2d}\n@media(max-width:430px){.n39-nav-top{padding:13px 11px 9px}.n39-handoff{padding:12px 11px 16px}.n39-map{height:32vh;min-height:225px}#route .n39-row button{font-size:12px}}\n";document.head.appendChild(s)}})();
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosNativeNavStyle, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        // V40: truck routing and on-screen guidance without external navigation apps.
+        let hosNativeV40Core = #"""
+/* HOS150 V40 truck-route core. Independent of ELD/duty storage. */
+(function(root,factory){const api=factory();if(typeof module!=='undefined'&&module.exports)module.exports=api;if(root)root.HOS150TruckCore=api;})(typeof window!=='undefined'?window:null,function(){
+'use strict';
+const FT=0.3048,LB_TO_TON=0.00045359237;
+const defaults={heightFeet:13.5,widthFeet:8.5,lengthFeet:70,weightLb:80000,axles:5,hazmat:false,confirmed:false};
+function number(v,min,max,name){
+ const n=Number(v);if(!Number.isFinite(n)||n<min||n>max)throw Error(name+' must be between '+min+' and '+max+'.');
+ return n;
+}
+function point(p){
+ if(!p||typeof p!=='object')throw Error('A GPS point is needed.');
+ return {lat:number(p.lat,-90,90,'Latitude'),lon:number(p.lon,-180,180,'Longitude')};
+}
+function profile(input){
+ const p=Object.assign({},defaults,input||{});
+ return {heightFeet:number(p.heightFeet,6,16,'Height (feet)'),
+ widthFeet:number(p.widthFeet,6,12,'Width (feet)'),lengthFeet:number(p.lengthFeet,12,100,'Length (feet)'),
+ weightLb:number(p.weightLb,5000,140000,'Gross weight (lb)'),axles:number(p.axles,2,12,'Axles'),
+ hazmat:p.hazmat===true,confirmed:p.confirmed===true};
+}
+function routeRequest(start,end,input){
+ const p=profile(input);
+ if(!p.confirmed)throw Error('Review and save the truck dimensions before calculating a route.');
+ return {locations:[point(start),point(end)],costing:'truck',costing_options:{truck:{
+  height:Math.round(p.heightFeet*FT*1000)/1000,width:Math.round(p.widthFeet*FT*1000)/1000,
+  length:Math.round(p.lengthFeet*FT*1000)/1000,weight:Math.round(p.weightLb*LB_TO_TON*1000)/1000,
+  axle_count:p.axles,hazmat:p.hazmat,use_truck_route:0.9,
+  exclude_unpaved:true,hgv_no_access_penalty:43200
+ }},units:'miles',language:'en-US',directions_type:'instructions',format:'json'};
+}
+function decodePolyline(encoded,precision=6){
+ if(typeof encoded!=='string'||encoded.length>400000)throw Error('Invalid route geometry.');
+ let index=0,lat=0,lon=0;const points=[],factor=Math.pow(10,precision);
+ while(index<encoded.length){
+  const delta=()=>{let result=0,shift=0,value;
+   do{if(index>=encoded.length||shift>35)throw Error('Invalid route encoding');
+     value=encoded.charCodeAt(index++)-63;if(value<0||value>63)throw Error('Invalid route character');
+     result|=(value&0x1f)<<shift;shift+=5;
+   }while(value>=0x20);
+   return result&1?~(result>>1):result>>1;
+  };
+  lat+=delta();lon+=delta();
+  if(Math.abs(lat/factor)>90||Math.abs(lon/factor)>180)throw Error('Invalid route coordinates');
+  points.push([lat/factor,lon/factor]);
+  if(points.length>100000)throw Error('Route too large');
+ }
+ return points;
+}
+function interpret(response){
+ const trip=response&&response.trip,leg=trip?.legs?.[0];
+ if(!trip||!leg||typeof leg.shape!=='string')throw Error(response?.error||'Truck routing unavailable or route not covered.');
+ const coords=decodePolyline(leg.shape);
+ if(coords.length<2)throw Error('No usable route geometry.');
+ const maneuvers=(Array.isArray(leg.maneuvers)?leg.maneuvers:[]).map(x=>({
+  instruction:String(x.instruction||'Continue').slice(0,250),
+  voice:String(x.verbal_pre_transition_instruction||x.instruction||'').slice(0,300),
+  index:Math.max(0,Math.min(coords.length-1,Number(x.begin_shape_index)||0)),
+  miles:Number(x.length)||0
+ })).sort((a,b)=>a.index-b.index);
+ return {coords,maneuvers,miles:Number(trip.summary?.length)||Number(leg.summary?.length)||0,
+ seconds:Number(trip.summary?.time)||Number(leg.summary?.time)||0,
+ source:'Valhalla truck profile + mapped OpenStreetMap restrictions'};
+}
+function distanceMi(a,b){
+ const R=3958.7613,rad=Math.PI/180,dlat=(b.lat-a.lat)*rad,dlon=(b.lon-a.lon)*rad;
+ const h=Math.sin(dlat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dlon/2)**2;
+ return R*2*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function nearest(points,gps){
+ let best={index:0,miles:Infinity};
+ for(let i=0;i<points.length;i++){const d=distanceMi({lat:points[i][0],lon:points[i][1]},gps);if(d<best.miles)best={index:i,miles:d}}
+ return best;
+}
+return {defaults,profile,point,routeRequest,decodePolyline,interpret,distanceMi,nearest};
+});
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeV40Core, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        // V40: truck routing and on-screen guidance without external navigation apps.
+        let hosNativeV40UI = #"""
+/* HOS150 V40: truck-aware Valhalla routes inside the iPhone WebView.
+ * No changes to ELD state; no other navigation app is opened. */
+(()=>{'use strict';
+if(window.__hos150V40Nav)return;window.__hos150V40Nav=true;
+const $=id=>document.getElementById(id),Core=()=>window.HOS150TruckCore;
+let map=null,originMarker=null,destinationMarker=null,line=null,gps=null,destination=null,planned=null;
+let watch=null,voiceEnabled=false,active=false,lastReroute=0,lastSpoken=-1,working=false;
+const PROFILE_KEY='hos150-truck-profile-v1';
+function getProfile(){try{return Core().profile(JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}'))}catch{return Core().profile({})}}
+function setMessage(msg,kind='neutral'){const e=$('t40message');if(e){e.textContent=msg;e.dataset.kind=kind;}}
+function setTurn(msg){const e=$('t40turn');if(e)e.textContent=msg;}
+function setStats(){
+ const m=$('t40stats');if(!m)return;
+ m.textContent=planned?(planned.miles.toFixed(1)+' mi • '+Math.round(planned.seconds/60)+' min • '+(active?'Guidance ON':'Preview ready')):'No route calculated';
+}
+function savedCustomerAddress(){
+ const s=localStorage.getItem('hos150customers-v1');
+ try{const a=JSON.parse(s||'[]');return Array.isArray(a)?a.filter(x=>x&&x.address).slice(0,50):[]}catch{return []}
+}
+function renderRecent(){
+ const element=$('t40customers');if(!element)return;
+ element.replaceChildren();
+ const list=savedCustomerAddress();
+ if(!list.length){element.hidden=true;return}
+ element.hidden=false;list.slice(0,4).forEach(customer=>{
+  const b=document.createElement('button');
+  b.type='button';
+  b.textContent=String(customer.name||customer.address).slice(0,40);
+  b.addEventListener('click',()=>{
+    $('n28dest').value=[customer.address,customer.city,customer.state,customer.zip].filter(Boolean).join(', ');
+    setMessage('Destination selected. Tap Calculate Truck Route.');
+  });element.appendChild(b);
+ });
+}
+function mapInit(){
+ if(map||!window.L||!$('t40map'))return;
+ map=L.map('t40map',{zoomControl:false,preferCanvas:true}).setView([44.1,-69.1],7);
+ L.control.zoom({position:'bottomright'}).addTo(map);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ map.on('click',e=>{
+  destination={lat:e.latlng.lat,lon:e.latlng.lng};
+  $('n28dest').value=destination.lat.toFixed(6)+','+destination.lon.toFixed(6);
+  setDestinationMarker();setMessage('Map pin selected. Tap Calculate Truck Route.');
+ });
+ setTimeout(()=>map?.invalidateSize(),180);
+}
+function setDestinationMarker(){
+ if(!map||!destination)return;
+ if(!destinationMarker)destinationMarker=L.marker([destination.lat,destination.lon]).addTo(map);
+ else destinationMarker.setLatLng([destination.lat,destination.lon]);
+}
+function updateOriginMarker(){
+ if(!map||!gps)return;
+ if(!originMarker)originMarker=L.circleMarker([gps.lat,gps.lon],{radius:8,color:'#fff',weight:2,fillColor:'#1398ee',fillOpacity:1}).addTo(map);
+ else originMarker.setLatLng([gps.lat,gps.lon]);
+}
+function onGPS(position){
+ gps={lat:position.coords.latitude,lon:position.coords.longitude,accuracy:position.coords.accuracy};
+ updateOriginMarker();
+ const g=$('t40gps');if(g)g.textContent='GPS ±'+Math.round(gps.accuracy)+'m';
+ if(active&&planned){
+  const n=Core().nearest(planned.coords,gps);
+  let upcoming=planned.maneuvers.find(x=>x.index>n.index+2);
+  if(!upcoming)upcoming=planned.maneuvers.at(-1);
+  const step=planned.maneuvers.indexOf(upcoming);
+  const distance=upcoming?Core().distanceMi(gps,{lat:planned.coords[upcoming.index][0],lon:planned.coords[upcoming.index][1]}):0;
+  setTurn((distance<0.1?'Now':distance.toFixed(1)+' mi')+' • '+(upcoming?.instruction||'Continue'));
+  if(voiceEnabled&&step!==lastSpoken&&distance<0.4&&upcoming&&window.speechSynthesis){
+   lastSpoken=step;try{speechSynthesis.cancel();let phrase=new SpeechSynthesisUtterance(upcoming.voice||upcoming.instruction);phrase.rate=0.96;speechSynthesis.speak(phrase)}catch{}
+  }
+  if(n.miles>0.5&&Date.now()-lastReroute>60000&&!working){
+    lastReroute=Date.now();setMessage('Off route — checking truck restrictions again…','warn');
+    calculate(false);
+  }
+ }
+}
+function ensureGPS(){
+ if(watch!==null||!navigator.geolocation)return;
+ watch=navigator.geolocation.watchPosition(onGPS,()=>{
+  const g=$('t40gps');if(g)g.textContent='GPS unavailable';
+  setMessage('Location unavailable. Allow GPS or enter a starting coordinate pair.','warn');
+ },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+async function geocode(text){
+ const c=text.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+ if(c)return Core().point({lat:c[1],lon:c[2]});
+ const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q='+encodeURIComponent(text),{headers:{Accept:'application/json'}});
+ if(!r.ok)throw Error('Address search unavailable. Try coordinates or tap the map.');
+ const j=await r.json();if(!Array.isArray(j)||!j.length)throw Error('Address not found. Tap the map for a precise destination.');
+ return Core().point({lat:j[0].lat,lon:j[0].lon});
+}
+async function calculate(fit=true){
+ if(working)return;
+ const input=$('n28dest')?.value?.trim();
+ if(!input)return setMessage('Enter a destination or tap the map.','warn');
+ let prof;try{prof=getProfile();if(!prof.confirmed)throw Error('Save your exact truck dimensions first.');}catch(e){return setMessage(e.message,'warn')}
+ working=true;$('t40plan').disabled=true;setMessage('Calculating a truck-profile route using Maine OpenStreetMap restrictions…');
+ try{
+  const lat=$('t40startLat')?.value,lon=$('t40startLon')?.value;
+  if(!gps&&(!String(lat||'').trim()||!String(lon||'').trim()))throw Error('Allow GPS or enter valid starting latitude and longitude.');
+  const start=gps||Core().point({lat,lon});
+  destination=await geocode(input);
+  const request=Core().routeRequest(start,destination,prof);
+  const response=await fetch('/api/truck-route',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request),cache:'no-store'});
+  if(!response.ok){let error='Truck router unavailable ('+response.status+').';try{const body=await response.json();error=String(body.error||body.message||error).slice(0,180)}catch{}throw Error(error)}
+  const json=await response.json(),route=Core().interpret(json);
+  planned=route;active=false;lastSpoken=-1;
+  if(map){
+    if(line)map.removeLayer(line);
+    line=L.polyline(route.coords,{color:'#0e8ced',weight:7,opacity:0.95}).addTo(map);
+    setDestinationMarker();const bounds=line.getBounds();
+    if(fit&&bounds.isValid())map.fitBounds(bounds,{padding:[22,22],maxZoom:14});
+  }
+  setStats();setTurn(route.maneuvers[1]?.instruction||'Route ready');
+  setMessage('Truck-profile route ready for map coverage. Always verify bridges and posted restrictions.','good');
+  $('t40start').disabled=false;
+ }catch(e){
+  active=false;planned=null;setStats();setTurn('No verified route');
+  setMessage((e.message||'Truck route unavailable')+' If the trip is outside Maine or restrictions are missing, use a certified truck-navigation source.','warn');
+ }finally{working=false;$('t40plan').disabled=false}
+}
+function saveProfile(){
+ const values={heightFeet:$('t40height').value,widthFeet:$('t40width').value,lengthFeet:$('t40length').value,weightLb:$('t40weight').value,axles:$('t40axles').value,hazmat:$('t40hazmat').checked,confirmed:true};
+ try{
+  const prof=Core().profile(values);localStorage.setItem(PROFILE_KEY,JSON.stringify(prof));
+  $('t40profileSummary').textContent='Profile saved: '+prof.heightFeet+' ft high • '+prof.widthFeet+' ft wide • '+Math.round(prof.weightLb).toLocaleString()+' lb';
+  setMessage('Truck profile saved on this phone. You can now calculate a route.','good');
+  $('t40settings').open=false;
+ }catch(e){setMessage(e.message,'warn')}
+}
+function build(){
+ const route=$('route');if(!route||!Core())return;
+ if(map){map.remove();map=null;line=null;destinationMarker=null;originMarker=null}
+ route.className='screen t40-route';route.innerHTML=
+ '<section class="t40-top"><div class="t40-heading"><h2>🚛 Truck Navigation</h2><span class="t40-region">MAINE MAP</span></div>'+
+ '<p>Guidance stays inside HOS150. Uses your saved truck dimensions and mapped road restrictions.</p>'+
+ '<label for="n28dest">Destination</label><div class="t40-input"><input id="n28dest" placeholder="Street address, customer or coordinates" autocomplete="street-address"><button id="t40plan" type="button">ROUTE</button></div>'+
+ '<div id="t40customers" class="t40-customers"></div>'+
+ '<div class="t40-controls"><button id="t40here" type="button">My location</button><button id="t40center" type="button">Recenter</button><button id="t40voice" type="button">Voice: off</button></div>'+
+ '<div class="t40-gpsrow"><span id="t40gps">GPS waiting</span><span id="t40stats">No route calculated</span></div>'+
+ '<div class="t40-startcoord"><label>Manual origin when GPS is unavailable: <input id="t40startLat" type="number" step="any" placeholder="latitude"><input id="t40startLon" type="number" step="any" placeholder="longitude"></label></div>'+
+ '</section><div id="t40map" class="t40-map" aria-label="Truck route map"></div>'+
+ '<section class="t40-bottom"><div class="t40-next"><span>NEXT MANEUVER</span><b id="t40turn">Plan a route to see turns</b></div>'+
+ '<div class="t40-controls"><button id="t40start" type="button" disabled>Start guidance</button><button id="t40stop" type="button">Stop guidance</button></div>'+
+ '<div id="t40message" role="status" class="t40-message">Enter your vehicle dimensions, then a destination.</div>'+
+ '<details id="t40settings"><summary>Truck profile — height, width, weight, hazmat</summary><div class="t40-form">'+
+ '<label>Height (feet)<input id="t40height" type="number" step=".1" min="6" max="16"></label>'+
+ '<label>Width (feet)<input id="t40width" type="number" step=".1" min="6" max="12"></label>'+
+ '<label>Length (feet)<input id="t40length" type="number" step=".1" min="12" max="100"></label>'+
+ '<label>Gross weight (lb)<input id="t40weight" type="number" min="5000" max="140000"></label>'+
+ '<label>Axles<input id="t40axles" type="number" min="2" max="12"></label>'+
+ '<label>Hazmat<input id="t40hazmat" type="checkbox"></label>'+
+ '<button type="button" id="t40save">SAVE TRUCK PROFILE</button></div></details>'+
+ '<p id="t40profileSummary" class="t40-profile-summary"></p>'+
+ '<p class="t40-safety">⚠️ Advisory truck routing, not a certified truck GPS. Missing OSM tags, temporary closures, low-clearance structures and local rules may make a route unsafe. Verify signs, permits and the actual route. No live traffic. Foreground navigation only.</p></section>';
+ const prof=getProfile();
+ for(const [name,key] of [['height','heightFeet'],['width','widthFeet'],['length','lengthFeet'],['weight','weightLb'],['axles','axles']])$('t40'+name).value=prof[key];
+ $('t40hazmat').checked=prof.hazmat;
+ $('t40profileSummary').textContent=prof.confirmed?'Truck dimensions saved':'Review and save the truck profile before planning.';
+ if(!prof.confirmed)$('t40settings').open=true;
+ $('t40save').onclick=saveProfile;
+ $('t40plan').onclick=()=>calculate(true);
+ $('n28dest').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();calculate(true)}};
+ $('t40here').onclick=()=>{
+  if(gps&&map){map.setView([gps.lat,gps.lon],15);setMessage('Showing your position.','good')}
+  else{ensureGPS();setMessage('Waiting for GPS permission…')}
+ };
+ $('t40center').onclick=()=>{if(line&&map)map.fitBounds(line.getBounds(),{padding:[20,20]});else if(gps&&map)map.setView([gps.lat,gps.lon],14)};
+ $('t40voice').onclick=()=>{voiceEnabled=!voiceEnabled;$('t40voice').textContent='Voice: '+(voiceEnabled?'on':'off');};
+ $('t40start').onclick=()=>{if(!planned)return;active=true;setStats();setMessage('In-app turn guidance active. Keep screen visible, and verify every restriction.','good')};
+ $('t40stop').onclick=()=>{active=false;setStats();setTurn('Guidance stopped');};
+ renderRecent();mapInit();ensureGPS();
+}
+function stopGPS(){
+ if(watch!==null){try{navigator.geolocation?.clearWatch(watch)}catch{}watch=null;}
+ active=false;
+}
+function boot(){
+ build();
+ document.querySelector('body>nav')?.addEventListener('click',e=>{
+  const tab=e.target?.closest?.('[data-tab]')?.dataset?.tab;
+  if(tab==='route')setTimeout(()=>{
+   if(!$('t40map'))build();
+   else map?.invalidateSize();
+   ensureGPS();
+  },250);
+  else if(tab)stopGPS();
+ });
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)stopGPS();else if($('route')?.classList.contains('active'))ensureGPS()});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+else boot();
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeV40UI, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        // V40: truck routing and on-screen guidance without external navigation apps.
+        let hosNativeV40Style = #"""
+(()=>{if(!document.getElementById('hosNativeV40Style')){const st=document.createElement('style');st.id='hosNativeV40Style';st.textContent="/* HOS150 V40 compact truck-aware in-app navigator, no other app needed. */\n#route.t40-route{background:#071626;color:#ecf7ff;padding:0!important;border:1px solid #245a77;border-radius:17px;overflow:hidden}\n.t40-top{background:linear-gradient(130deg,#103754,#0b1a2d);padding:13px 14px}\n.t40-heading{display:flex;align-items:center;gap:10px;justify-content:space-between}\n.t40-heading h2{margin:0;color:#fff;font-size:24px;line-height:1.2}\n.t40-region{padding:6px 8px;border:1px solid #40bdd8;border-radius:10px;font-size:10px;color:#9af3ff;font-weight:900;white-space:nowrap}\n.t40-top p{font-size:12px;line-height:1.45;color:#aed0df;margin:8px 0 12px}\n.t40-top label{display:block;font-size:12px;color:#d6e9f5}\n.t40-input{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:8px}\n#route #n28dest{width:100%;min-width:0;border-radius:11px;padding:10px;background:#fff;color:#11273d;border:2px solid #6cd3ea;min-height:50px;font-size:16px}\n#route .t40-controls{display:flex;gap:7px;margin:8px 0;flex-wrap:wrap}\n#route button{min-height:46px;border-radius:12px;background:#245b7e;border:1px solid #4684a8;color:#fff;font-weight:850;font-size:13px;padding:9px 11px}\n#route button:focus-visible{outline:3px solid #b0f2ff;outline-offset:2px}\n#route button:disabled{opacity:.42}\n#route #t40plan,#route #t40start{background:#087e9d}\n.t40-gpsrow{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#b9dae8;flex-wrap:wrap;font-variant-numeric:tabular-nums}\n.t40-map{height:min(44vh,440px);min-height:280px;background:#0b243b}\n.t40-bottom{padding:11px 13px 15px;background:#0b1e32}\n.t40-next{border:1px solid #3b7895;border-radius:12px;background:#152f4c;padding:12px}\n.t40-next span{display:block;font-size:10px;font-weight:900;letter-spacing:.07em;color:#9ce6f7}\n.t40-next b{display:block;font-size:18px;line-height:1.3;color:#fff;margin-top:4px}\n.t40-message{border-radius:10px;background:#122e48;color:#d1e7fa;line-height:1.4;font-size:12px;padding:10px;margin:9px 0;overflow-wrap:anywhere}\n.t40-message[data-kind=warn]{background:#54330b;color:#ffe3a3}\n.t40-message[data-kind=good]{background:#103c36;color:#a6ffe5}\n.t40-form{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}\n.t40-form label{display:grid;gap:4px;font-size:11px;color:#c5deea}\n.t40-form input:not([type=checkbox]){width:100%;min-height:43px;border-radius:9px;background:#fff;color:#0c2437;padding:8px}\n.t40-form input[type=checkbox]{width:25px;height:25px}\n.t40-form button{grid-column:1/-1}\n#route details{border:1px solid #326180;border-radius:10px;padding:10px;margin-top:10px}\n#route summary{cursor:pointer;font-weight:850;font-size:13px}\n.t40-customers{display:flex;gap:6px;overflow-x:auto;margin-top:8px}\n#route .t40-customers button{min-height:36px;padding:6px 8px;white-space:nowrap;font-size:11px}\n.t40-startcoord{margin-top:6px}\n.t40-startcoord label{font-size:11px;color:#bbd1dd}\n.t40-startcoord input{max-width:110px;min-height:33px;border-radius:7px;padding:6px;background:#fff;color:#112436;margin:2px}\n.t40-profile-summary{color:#a4dbed;font-size:11px}\n.t40-safety{border:1px solid #9a6d1f;border-radius:11px;background:#442d0c;color:#ffe2a4;padding:11px;font-size:11px;line-height:1.45}\n@media(max-width:430px){.t40-map{height:34vh;min-height:255px}.t40-heading h2{font-size:21px}.t40-top{padding:12px 10px}.t40-bottom{padding:9px 10px}.t40-input{grid-template-columns:minmax(0,1fr) 78px}}\n";document.head.appendChild(st)}})();
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeV40Style, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false
