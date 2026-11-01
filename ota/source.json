@@ -16,12 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.3",
-          "buildVersion": "107",
-          "date": "2026-11-01T02:52:26+00:00",
-          "localizedDescription": "V38 driver workspace compatibility, one-tap Logs shortcut and Refresh, Face ID and alerts",
+          "version": "1.0.4",
+          "buildVersion": "108",
+          "date": "2026-11-01T14:35:41+00:00",
+          "localizedDescription": "V38.1 Driver Hub navigation hotfix: removes the duplicate Driver Hub tab, refreshes offline app caching, and preserves ELD log refresh, Face ID and notifications.",
+          "webBuildId": "2026-10-31-v38.1",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2746438,
+          "size": 2746437,
           "minOSVersion": "17.0"
         }
       ]
