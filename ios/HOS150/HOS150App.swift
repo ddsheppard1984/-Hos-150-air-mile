@@ -135,6 +135,19 @@ struct HOS150Home: View {
 
             HStack(spacing: 10) {
                 Button {
+                    location.webView?.evaluateJavaScript("document.querySelector('nav [data-tab=\"log\"]')?.click(); void(0)", completionHandler: nil)
+                } label: {
+                    Image(systemName: "text.book.closed.fill")
+                }
+                .accessibilityLabel("Open HOS log corrections")
+                Button {
+                    // A WebKit view refresh preserves the app's persistent local storage.
+                    reload()
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .accessibilityLabel("Refresh HOS driver dashboard")
+                Button {
                     if location.status == "GPS off" {
                         location.start()
                     } else {
@@ -195,6 +208,14 @@ struct HOS150Home: View {
                             editSettings = false
                             reload()
                         }.disabled(!approvedURL(draft))
+                    }
+                    Section("HOS 150 V38 Driver Workspace") {
+                        Text("Native app version: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown")")
+                        Text("The live driver screens, Start Fresh log corrections, and offline data remain on your secured Squeak Server.")
+                        Button("Refresh Driver Workspace") {
+                            editSettings = false
+                            reload()
+                        }
                     }
                     Section("Privacy and Alerts") {
                         Toggle("Lock with Face ID or device passcode", isOn: $biometricLock)

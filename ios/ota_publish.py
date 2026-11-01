@@ -38,7 +38,7 @@ def main(ipa_name, outdir):
     assert info["CFBundleIdentifier"] == BUNDLE
     version=str(info["CFBundleShortVersionString"])
     build=str(info["CFBundleVersion"])
-    assert version == "1.0.2" and int(build)>100, (version,build)
+    assert version == "1.0.3" and int(build)>100, (version,build)
     (out/"HOS150.ipa").write_bytes(ipa.read_bytes())
     __import__("shutil").copyfile("ios/HOS150/Assets.xcassets/AppIcon.appiconset/AppIcon.png",out/"icon.png")
     date=dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
@@ -61,7 +61,7 @@ def main(ipa_name, outdir):
                 "version":version,
                 "buildVersion":build,
                 "date":date,
-                "localizedDescription":"Optional Face ID app lock, native HOS alerts and clearer driver pages",
+                "localizedDescription":"V38 driver workspace compatibility, one-tap Logs shortcut and Refresh, Face ID and alerts",
                 "downloadURL":BASE+"HOS150.ipa",
                 "size":ipa.stat().st_size,
                 "minOSVersion":"17.0"
