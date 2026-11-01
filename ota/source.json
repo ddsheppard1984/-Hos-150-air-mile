@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.6",
-          "buildVersion": "110",
-          "date": "2026-11-01T14:58:48+00:00",
-          "localizedDescription": "Safety and readability: export both phone and server duty-log copies without overwriting either; fix overlapping GPS/status header on iPhone; retain one Driver Hub and Start Fresh with history. Source server update must also be deployed.",
-          "webBuildId": "2026-11-01-v38.1-mobile-hotfix3",
+          "version": "1.0.7",
+          "buildVersion": "111",
+          "date": "2026-11-01T15:08:43+00:00",
+          "localizedDescription": "Fixes the iPhone header and toolbar overlapping the ELD recovery screen. Header and navigation scroll normally, the iPhone web area starts below native controls, and export of phone/server logs remains non-destructive.",
+          "webBuildId": "2026-11-01-v38.1-header-flowfix4",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2748893,
+          "size": 2749667,
           "minOSVersion": "17.0"
         }
       ]
