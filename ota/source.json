@@ -16,12 +16,12 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.1",
-          "buildVersion": "105",
-          "date": "2026-11-01T01:44:43+00:00",
-          "localizedDescription": "Unique truck/logbook Home Screen icon, secure cloud access and native GPS",
+          "version": "1.0.2",
+          "buildVersion": "106",
+          "date": "2026-11-01T02:04:27+00:00",
+          "localizedDescription": "Optional Face ID app lock, native HOS alerts and clearer driver pages",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2727650,
+          "size": 2742857,
           "minOSVersion": "17.0"
         }
       ]
