@@ -288,6 +288,67 @@ struct HOS150Browser: UIViewRepresentable {
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         config.allowsInlineMediaPlayback = true
         config.userContentController.add(context.coordinator, name: "hosAlert")
+        // Protect WebView users even if an older service-worker shell is still cached.
+        // This script changes only navigation and safe ELD entry-point UI, never log data.
+        let hosMobileRepair = #"""
+/* HOS150 V38.1 mobile repair: one Driver Hub and a visible, non-destructive ELD shortcut. */
+(()=>{'use strict';
+  function repairNav(){
+    const nav=document.querySelector('body>nav');
+    if(!nav)return;
+    const buttons=Array.from(nav.querySelectorAll('button[data-tab="hub"]'));
+    if(buttons.length<=1)return;
+    // Keep the last listener-bearing button from any legacy dynamic Hub script.
+    const keep=buttons[buttons.length-1];
+    const wasSelected=buttons.some(button=>button.classList.contains('sel'));
+    buttons.slice(0,-1).forEach(button=>button.remove());
+    if(wasSelected)keep.classList.add('sel');
+  }
+  function showFreshForm(){
+    const reset=document.getElementById('v38reset');
+    const info=document.getElementById('hosFreshShortcutStatus');
+    if(!reset){
+      if(info)info.textContent='ELD log corrections are unavailable. Use Refresh and reconnect; your original log has not been changed.';
+      return;
+    }
+    reset.click();
+    if(info)info.textContent='Enter an accurate reason to archive and start a new prototype session. Original driving logs remain protected.';
+  }
+  function addFreshShortcut(){
+    const log=document.getElementById('log');
+    if(!log||document.getElementById('hosFreshShortcut'))return;
+    const card=document.createElement('div');
+    card.className='card';
+    card.id='hosFreshShortcut';
+    card.innerHTML='<h2>ELD Timer &amp; Session</h2>'+
+      '<p class="muted">Start a new prototype session without erasing original driving records, corrections, or HOS history.</p>'+
+      '<div class="row"><button id="hosFreshShortcutButton" type="button">START FRESH — KEEP HISTORY</button>'+
+      '<button id="hosFreshRefreshButton" type="button" class="secondary">REFRESH ELD LOGS</button></div>'+
+      '<p id="hosFreshShortcutStatus" class="muted">This is not a certified ELD or a legal hours-of-service reset.</p>';
+    log.insertBefore(card,log.firstChild);
+    document.getElementById('hosFreshShortcutButton').onclick=showFreshForm;
+    document.getElementById('hosFreshRefreshButton').onclick=()=>{
+      const refresh=document.getElementById('v38refresh');
+      if(refresh)refresh.click();
+      else document.getElementById('hosFreshShortcutStatus').textContent='Log refresh is unavailable. Saved duty records have not been changed.';
+    };
+  }
+  function boot(){
+    repairNav();addFreshShortcut();
+    const nav=document.querySelector('body>nav');
+    if(nav&&typeof MutationObserver!=='undefined'){
+      const observer=new MutationObserver(repairNav);
+      observer.observe(nav,{childList:true});
+    }
+    // A later legacy script may replace the controls during startup.
+    setTimeout(()=>{repairNav();addFreshShortcut()},1000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+  else boot();
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosMobileRepair, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false
@@ -299,7 +360,7 @@ struct HOS150Browser: UIViewRepresentable {
         if let url = URL(string: address), url.scheme == "https",
            ["hos150.houseofsqueak.com", "squeak-server.tail7517d1.ts.net"].contains(url.host ?? "") {
             context.coordinator.appHost = url.host ?? ""
-            view.load(URLRequest(url: url, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 25))
+            view.load(URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 25))
         } else {
             DispatchQueue.main.async { onStatus("Invalid server URL", true) }
         }
