@@ -1,0 +1,31 @@
+{
+  "name": "House of Squeak \u2014 HOS 150",
+  "identifier": "com.houseofsqueak.hos150.altstore",
+  "sourceURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/source.json",
+  "description": "Free HOS 150 native iPhone app updates",
+  "iconURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/icon.png",
+  "tintColor": "29D4B0",
+  "apps": [
+    {
+      "name": "HOS 150",
+      "bundleIdentifier": "com.houseofsqueak.hos150",
+      "developerName": "House of Squeak",
+      "subtitle": "Driver dashboard \u2022 GPS tools \u2022 HOS 150",
+      "localizedDescription": "Native iPhone wrapper for the privately hosted HOS 150 driver app, including secure Cloudflare email login and optional native GPS telemetry. Prototype only \u2014 NOT a certified ELD. Never interact while driving.",
+      "iconURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/icon.png",
+      "category": "utilities",
+      "versions": [
+        {
+          "version": "1.0.0",
+          "buildVersion": "101",
+          "date": "2026-11-01T01:28:36+00:00",
+          "localizedDescription": "Secure access without phone Tailscale; native location control and diagnostics",
+          "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
+          "size": 63811,
+          "minOSVersion": "17.0"
+        }
+      ]
+    }
+  ],
+  "news": []
+}
