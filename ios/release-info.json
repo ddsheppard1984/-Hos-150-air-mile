@@ -1,0 +1,8 @@
+{
+  "iosVersion": "1.0.4",
+  "webVersion": "38.1",
+  "webBuildId": "2026-10-31-v38.1",
+  "webHotfix": "driver-hub-v19.js?v=38.1-navfix1",
+  "releaseNotes": "V38.1 Driver Hub navigation hotfix: removes the duplicate Driver Hub tab, refreshes offline app caching, and preserves ELD log refresh, Face ID and notifications.",
+  "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
+}
