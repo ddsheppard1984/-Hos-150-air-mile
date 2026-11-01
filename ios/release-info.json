@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.11",
-  "webVersion": "39.1",
-  "webBuildId": "2026-11-01-v39.1",
-  "webHotfix": "pwa-v25.js?v=39.1",
-  "releaseNotes": "V39.1 removes the redundant INSTALL APP banner from the installed SideStore iPhone app and HOS150 web view. Preserves the V39 cockpit, ELD live graph, GPS, offline records, and safe sync.",
+  "iosVersion": "1.0.12",
+  "webVersion": "39.2",
+  "webBuildId": "2026-11-01-v39.2",
+  "webHotfix": "v39-nav-clean.js?v=39.2",
+  "releaseNotes": "V39.2: simplified in-app destination search and map, one-tap Apple Maps/Waze handoff, saved customer locations and native fallback. Apple/Waze are car routes, not validated truck routes. HOS data remains unchanged.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }

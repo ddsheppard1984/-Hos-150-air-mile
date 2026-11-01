@@ -987,6 +987,133 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (()=>{'use strict';const hide=()=>{const b=document.getElementById('pwaInstall');if(b)b.remove()};if(!document.getElementById('hosNativeNoInstallStyle')){const st=document.createElement('style');st.id='hosNativeNoInstallStyle';st.textContent='#pwaInstall{display:none!important}';(document.head||document.documentElement).appendChild(st)}hide();new MutationObserver(hide).observe(document.documentElement,{childList:true,subtree:true});})();
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosNativeNoInstall, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeNavBridge = #"""
+/* HOS150 V39.2 navigation bridge: car navigation apps only; no truck-safe claims. */
+(function(root,fn){const api=fn();if(typeof module!=='undefined'&&module.exports)module.exports=api;if(root)root.HOS150NavBridge=api;})(typeof window!=='undefined'?window:null,function(){
+ 'use strict';
+ function normalize(value){
+   const raw=String(value??'').trim().replace(/\s+/g,' ');
+   if(!raw||raw.length>250)throw Error('Enter a destination under 250 characters.');
+   if(/[\u0000-\u001f\u007f]/.test(raw))throw Error('Invalid destination characters.');
+   return raw;
+ }
+ function coords(value){
+  const match=normalize(value).match(/^(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)$/);
+  if(!match)return null;
+  const lat=Number(match[1]),lon=Number(match[2]);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||Math.abs(lat)>90||Math.abs(lon)>180)throw Error('Invalid GPS coordinates.');
+  return {lat,lon};
+ }
+ function urls(value){
+  const address=normalize(value),geo=coords(address),q=encodeURIComponent(address);
+  return {
+    apple:'https://maps.apple.com/?daddr='+q+'&dirflg=d',
+    waze:'https://waze.com/ul?'+(geo?'ll='+encodeURIComponent(geo.lat+','+geo.lon):'q='+q)+'&navigate=yes&utm_source=com.houseofsqueak.hos150'
+  };
+ }
+ return {normalize,coords,urls};
+});
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeNavBridge, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeNavUI = #"""
+/* HOS150 V39.2 Navigation: minimal map + explicit native app hand-off.
+   Apple Maps and Waze provide car routing; not truck-cleared routes. */
+(()=>{'use strict';
+if(window.__hos150CleanNav)return;window.__hos150CleanNav=true;
+const $=id=>document.getElementById(id);
+let map=null,marker=null,gpsMarker=null,lastFix=null,lastPinned=null;
+function status(t){const x=$('n39status');if(x)x.textContent=t;}
+function selection(){
+ const text=$('n28dest')?.value?.trim()||'';
+ const apple=$('n39apple'),waze=$('n39waze');
+ try{
+   const urls=window.HOS150NavBridge.urls(text);
+   apple.href=urls.apple;waze.href=urls.waze;
+   return text;
+ }catch{
+   apple?.removeAttribute('href');waze?.removeAttribute('href');return '';
+ }
+}
+function stop(e){
+ if(!selection()){e.preventDefault();status('Enter an address or GPS coordinates first.');$('n28dest')?.focus();}
+}
+function initializeMap(){
+ if(map||!window.L||!$('n39map'))return;
+ map=L.map('n39map',{zoomControl:false,preferCanvas:true}).setView([39.8,-96.2],4);
+ L.control.zoom({position:'bottomright'}).addTo(map);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+ setTimeout(()=>map?.invalidateSize(),150);
+}
+function place(lat,lon,zoom=14){
+ if(!map)return;
+ if(!marker)marker=L.marker([lat,lon]).addTo(map);
+ else marker.setLatLng([lat,lon]);
+ map.setView([lat,lon],zoom);
+ lastPinned={lat,lon};
+}
+async function preview(){
+ const text=selection();if(!text)return status('Enter a destination.');
+ const c=window.HOS150NavBridge.coords(text);
+ if(c){place(c.lat,c.lon);status('Destination located. Choose Apple Maps or Waze to start directions.');return}
+ status('Looking up destination for map preview…');
+ try{
+  const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q='+encodeURIComponent(text),{headers:{Accept:'application/json'}});
+  if(!r.ok)throw Error('Search unavailable');
+  const j=await r.json();const p=j[0];
+  if(!p)throw Error('No match; check address.');
+  place(Number(p.lat),Number(p.lon));
+  status('Pinned: '+String(p.display_name||text).slice(0,130));
+ }catch(e){status((e?.message||'Preview unavailable')+'. Apple Maps or Waze can still search the address.')}
+}
+function currentLocation(){
+ if(!navigator.geolocation)return status('GPS is not available on this device.');
+ status('Finding your location…');
+ navigator.geolocation.getCurrentPosition(p=>{
+  lastFix={lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy};
+  if(map){if(!gpsMarker)gpsMarker=L.circleMarker([lastFix.lat,lastFix.lon],{radius:7,color:'#fff',weight:3,fillColor:'#25b5f7',fillOpacity:1}).addTo(map);else gpsMarker.setLatLng([lastFix.lat,lastFix.lon]);map.setView([lastFix.lat,lastFix.lon],15);}
+  status('GPS located (±'+Math.round(lastFix.accuracy)+' m). Enter a destination to navigate.');
+ },()=>status('GPS permission unavailable. Enter a destination manually.'),{enableHighAccuracy:true,timeout:12000,maximumAge:15000});
+}
+function build(){
+ const section=$('route');if(!section||!window.HOS150NavBridge)return;
+ section.className='screen n39-route';
+ section.replaceChildren();
+ const top=document.createElement('section');
+ top.className='n39-nav-top';
+ top.innerHTML='<h2>Navigation</h2><p>Simple map and destination search</p>'+
+  '<label for="n28dest">Destination</label><input id="n28dest" inputmode="search" autocomplete="street-address" placeholder="Street address, city or GPS coordinates"/>'+
+  '<div class="n39-row"><button type="button" id="n28go">PREVIEW ON MAP</button><button type="button" id="n39here">MY LOCATION</button></div>'+
+  '<p class="n39-status" id="n39status" role="status">Enter a destination or open a saved customer address.</p>';
+ section.appendChild(top);
+ const mapBox=document.createElement('div');mapBox.className='n39-map';mapBox.id='n39map';section.appendChild(mapBox);
+ const panel=document.createElement('section');panel.className='n39-handoff';
+ panel.innerHTML='<h3>Start guided navigation</h3><div class="n39-actions">'+
+   '<a id="n39apple" role="button" class="n39-action" rel="noopener">Apple Maps</a>'+
+   '<a id="n39waze" role="button" class="n39-action" rel="noopener">Waze</a></div>'+
+   '<p class="n39-warning">Important: Apple Maps and Waze calculate car routes. Neither checks your truck height, width, weight or restricted roads. Verify the route with an appropriate truck-specific source and obey posted restrictions.</p>';
+ section.appendChild(panel);
+ const i=$('n28dest');i?.addEventListener('input',selection);i?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();preview()}});
+ $('n28go').onclick=preview;$('n39here').onclick=currentLocation;
+ $('n39apple').addEventListener('click',stop);$('n39waze').addEventListener('click',stop);
+ initializeMap();
+}
+function boot(){
+ build();
+ const nav=document.querySelector('body>nav');
+ nav?.addEventListener('click',e=>{
+  if(e.target?.closest?.('[data-tab="route"]'))setTimeout(()=>{if(!$('n39map')){map?.remove();map=null;marker=null;gpsMarker=null;build()}map?.invalidateSize()},220);
+ });
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeNavUI, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeNavStyle = #"""
+(()=>{if(!document.getElementById('hosNavStyleV39')){const s=document.createElement('style');s.id='hosNavStyleV39';s.textContent="/* V39.2 clean navigation UI: no simulated truck-routing claims. */\n#route.n39-route{background:#071521!important;color:#eaf7ff!important;padding:0!important;border-radius:17px;overflow:hidden}\n.n39-nav-top{padding:18px 15px 12px;background:linear-gradient(130deg,#112c49,#0a182c)}\n.n39-nav-top h2{color:#fff;font-size:26px;line-height:1.1;margin:0}\n.n39-nav-top p{color:#b5cfdf;margin:5px 0 14px;font-size:13px}\n.n39-nav-top label{display:block;font-size:12px;color:#b9d2e4;margin-bottom:5px}\n#route #n28dest{display:block;width:100%;min-height:54px;padding:12px 14px;border-radius:12px;background:#fff;color:#10213a;font-size:16px;border:2px solid #6bd5f1}\n.n39-row,.n39-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:11px}\n#route .n39-row button{min-height:49px;border:1px solid #3a83a8;background:#163c5c;color:#fff;border-radius:12px;font-weight:850;font-size:13px;white-space:normal}\n.n39-status{min-height:22px;font-size:12px;line-height:1.4;overflow-wrap:anywhere}\n.n39-map{height:min(43vh,390px);min-height:230px;background:#16283c}\n.n39-handoff{padding:13px 15px 18px;background:#0c1e31}\n.n39-handoff h3{font-size:17px;color:#fff;margin:2px 0 4px}\n.n39-action{display:flex;align-items:center;justify-content:center;min-height:55px;background:#1a5c83;color:#fff!important;border:1px solid #61c4e3;border-radius:13px;font-size:16px;font-weight:900;text-decoration:none!important;line-height:1.2;text-align:center}\n.n39-action:focus-visible{outline:3px solid #b0efff}\n.n39-warning{margin:13px 0 0;padding:11px 13px;background:#442f15;color:#ffe4a0;border-radius:11px;font-size:12px;line-height:1.48;border:1px solid #886b2d}\n@media(max-width:430px){.n39-nav-top{padding:13px 11px 9px}.n39-handoff{padding:12px 11px 16px}.n39-map{height:32vh;min-height:225px}#route .n39-row button{font-size:12px}}\n";document.head.appendChild(s)}})();
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeNavStyle, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false
