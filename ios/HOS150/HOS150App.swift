@@ -1017,97 +1017,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosNativeNavBridge, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         let hosNativeNavUI = #"""
-/* HOS150 V39.2 Navigation: minimal map + explicit native app hand-off.
-   Apple Maps and Waze provide car routing; not truck-cleared routes. */
-(()=>{'use strict';
-if(window.__hos150CleanNav)return;window.__hos150CleanNav=true;
-const $=id=>document.getElementById(id);
-let map=null,marker=null,gpsMarker=null,lastFix=null,lastPinned=null;
-function status(t){const x=$('n39status');if(x)x.textContent=t;}
-function selection(){
- const text=$('n28dest')?.value?.trim()||'';
- const apple=$('n39apple'),waze=$('n39waze');
- try{
-   const urls=window.HOS150NavBridge.urls(text);
-   apple.href=urls.apple;waze.href=urls.waze;
-   return text;
- }catch{
-   apple?.removeAttribute('href');waze?.removeAttribute('href');return '';
- }
-}
-function stop(e){
- if(!selection()){e.preventDefault();status('Enter an address or GPS coordinates first.');$('n28dest')?.focus();}
-}
-function initializeMap(){
- if(map||!window.L||!$('n39map'))return;
- map=L.map('n39map',{zoomControl:false,preferCanvas:true}).setView([39.8,-96.2],4);
- L.control.zoom({position:'bottomright'}).addTo(map);
- L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
- setTimeout(()=>map?.invalidateSize(),150);
-}
-function place(lat,lon,zoom=14){
- if(!map)return;
- if(!marker)marker=L.marker([lat,lon]).addTo(map);
- else marker.setLatLng([lat,lon]);
- map.setView([lat,lon],zoom);
- lastPinned={lat,lon};
-}
-async function preview(){
- const text=selection();if(!text)return status('Enter a destination.');
- const c=window.HOS150NavBridge.coords(text);
- if(c){place(c.lat,c.lon);status('Destination located. Choose Apple Maps or Waze to start directions.');return}
- status('Looking up destination for map preview…');
- try{
-  const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q='+encodeURIComponent(text),{headers:{Accept:'application/json'}});
-  if(!r.ok)throw Error('Search unavailable');
-  const j=await r.json();const p=j[0];
-  if(!p)throw Error('No match; check address.');
-  place(Number(p.lat),Number(p.lon));
-  status('Pinned: '+String(p.display_name||text).slice(0,130));
- }catch(e){status((e?.message||'Preview unavailable')+'. Apple Maps or Waze can still search the address.')}
-}
-function currentLocation(){
- if(!navigator.geolocation)return status('GPS is not available on this device.');
- status('Finding your location…');
- navigator.geolocation.getCurrentPosition(p=>{
-  lastFix={lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy};
-  if(map){if(!gpsMarker)gpsMarker=L.circleMarker([lastFix.lat,lastFix.lon],{radius:7,color:'#fff',weight:3,fillColor:'#25b5f7',fillOpacity:1}).addTo(map);else gpsMarker.setLatLng([lastFix.lat,lastFix.lon]);map.setView([lastFix.lat,lastFix.lon],15);}
-  status('GPS located (±'+Math.round(lastFix.accuracy)+' m). Enter a destination to navigate.');
- },()=>status('GPS permission unavailable. Enter a destination manually.'),{enableHighAccuracy:true,timeout:12000,maximumAge:15000});
-}
-function build(){
- const section=$('route');if(!section||!window.HOS150NavBridge)return;
- section.className='screen n39-route';
- section.replaceChildren();
- const top=document.createElement('section');
- top.className='n39-nav-top';
- top.innerHTML='<h2>Navigation</h2><p>Simple map and destination search</p>'+
-  '<label for="n28dest">Destination</label><input id="n28dest" inputmode="search" autocomplete="street-address" placeholder="Street address, city or GPS coordinates"/>'+
-  '<div class="n39-row"><button type="button" id="n28go">PREVIEW ON MAP</button><button type="button" id="n39here">MY LOCATION</button></div>'+
-  '<p class="n39-status" id="n39status" role="status">Enter a destination or open a saved customer address.</p>';
- section.appendChild(top);
- const mapBox=document.createElement('div');mapBox.className='n39-map';mapBox.id='n39map';section.appendChild(mapBox);
- const panel=document.createElement('section');panel.className='n39-handoff';
- panel.innerHTML='<h3>Start guided navigation</h3><div class="n39-actions">'+
-   '<a id="n39apple" role="button" class="n39-action" rel="noopener">Apple Maps</a>'+
-   '<a id="n39waze" role="button" class="n39-action" rel="noopener">Waze</a></div>'+
-   '<p class="n39-warning">Important: Apple Maps and Waze calculate car routes. Neither checks your truck height, width, weight or restricted roads. Verify the route with an appropriate truck-specific source and obey posted restrictions.</p>';
- section.appendChild(panel);
- const i=$('n28dest');i?.addEventListener('input',selection);i?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();preview()}});
- $('n28go').onclick=preview;$('n39here').onclick=currentLocation;
- $('n39apple').addEventListener('click',stop);$('n39waze').addEventListener('click',stop);
- initializeMap();
-}
-function boot(){
- build();
- const nav=document.querySelector('body>nav');
- nav?.addEventListener('click',e=>{
-  if(e.target?.closest?.('[data-tab="route"]'))setTimeout(()=>{if(!$('n39map')){map?.remove();map=null;marker=null;gpsMarker=null;build()}map?.invalidateSize()},220);
- });
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
-})();
-
+/* V39 car-navigation script retired in HOS150 V40.2; V40 is the only owner of the route screen. */
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosNativeNavUI, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         let hosNativeNavStyle = #"""
@@ -1337,8 +1247,16 @@ function build(){
  }
  const navButton=document.querySelector('body>nav [data-tab="route"]');
  if(navButton)navButton.textContent='🚛 Truck Navigation';
+ // A late-loaded script must never hide a screen whose navigation tab is selected.
+ // Previously assigning 'screen t40-route' dropped 'active' while leaving the tab highlighted.
+ const selected=!!navButton?.classList.contains('sel');
+ const activeBefore=route.classList.contains('active');
  if(map){map.remove();map=null;line=null;destinationMarker=null;originMarker=null}
- route.className='screen t40-route';route.innerHTML=
+ route.className='screen t40-route'+((selected||activeBefore)?' active':'');
+ if(selected){
+  document.querySelectorAll('main>.screen').forEach(el=>{if(el!==route)el.classList.remove('active')});
+  route.classList.add('active');
+ }route.innerHTML=
  '<section class="t40-top"><div class="t40-heading"><h2>🚛 Truck Navigation</h2><span class="t40-region">MAINE MAP</span></div>'+
  '<p>Guidance stays inside HOS150. Uses your saved truck dimensions and mapped road restrictions.</p>'+
  '<label for="n28dest">Destination</label><div class="t40-input"><input id="n28dest" placeholder="Street address, customer or coordinates" autocomplete="street-address"><button id="t40plan" type="button">ROUTE</button></div>'+
@@ -1385,11 +1303,32 @@ function stopGPS(){
 }
 function boot(){
  build();
+ const routeEl=$('route');
+ const navButton=document.querySelector('body>nav [data-tab="route"]');
+ // Older scripts (including cached native scripts) can mutate route content or visibility.
+ // Observe the route shell, restore only if selected, never modify ELD data.
+ if(routeEl&&typeof MutationObserver!=='undefined'){
+  let repairing=false;
+  new MutationObserver(()=>{
+   if(repairing||!navButton?.classList.contains('sel'))return;
+   repairing=true;
+   try{
+    if(!$('t40map'))build();
+    else if(!routeEl.classList.contains('active'))routeEl.classList.add('active');
+   }finally{repairing=false}
+  }).observe(routeEl,{attributes:true,attributeFilter:['class'],childList:true});
+ }
  document.querySelector('body>nav')?.addEventListener('click',e=>{
   const tab=e.target?.closest?.('[data-tab]')?.dataset?.tab;
   if(tab==='route')setTimeout(()=>{
+   const routeEl=$('route');
    if(!$('t40map'))build();
-   else map?.invalidateSize();
+   const selected=document.querySelector('body>nav [data-tab="route"]')?.classList.contains('sel');
+   if(selected&&routeEl&&!routeEl.classList.contains('active')){
+     document.querySelectorAll('main>.screen').forEach(el=>{if(el!==routeEl)el.classList.remove('active')});
+     routeEl.classList.add('active');
+   }
+   map?.invalidateSize();
    ensureGPS();
   },250);
   else if(tab)stopGPS();

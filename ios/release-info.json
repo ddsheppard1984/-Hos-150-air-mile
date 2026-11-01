@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.14",
-  "webVersion": "40.1",
-  "webBuildId": "2026-11-01-v40.1-navfix",
-  "webHotfix": "ultimate-v17.js?v=40.1",
-  "releaseNotes": "V40.1 fixes blank Live Route screen: prevents legacy V17 from replacing the truck navigator, repairs the in-app truck map and profile view, and keeps ELD data and Lenovo truck routing unchanged.",
+  "iosVersion": "1.0.15",
+  "webVersion": "40.2",
+  "webBuildId": "2026-11-01-v40.2-active-nav",
+  "webHotfix": "v40-truck-nav.js?v=40.2",
+  "releaseNotes": "V40.2 fixes the blank Truck Navigation tab by preserving the selected screen, repairing late script changes and disabling the obsolete V39 navigation script in the native app. Preserves truck routing and ELD history.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
