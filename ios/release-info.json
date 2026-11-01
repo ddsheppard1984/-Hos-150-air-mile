@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.13",
-  "webVersion": "40.0",
-  "webBuildId": "2026-11-01-v40.0",
-  "webHotfix": "v40-truck-nav.js?v=40.0",
-  "releaseNotes": "V40 in-app truck-profile navigation: full HOS150 map, turn guidance, vehicle height/width/length/weight/axles/hazmat, optional speech, Lenovo Valhalla private router (Maine coverage), and preserved ELD histories. Actual routing service deployment required.",
+  "iosVersion": "1.0.14",
+  "webVersion": "40.1",
+  "webBuildId": "2026-11-01-v40.1-navfix",
+  "webHotfix": "ultimate-v17.js?v=40.1",
+  "releaseNotes": "V40.1 fixes blank Live Route screen: prevents legacy V17 from replacing the truck navigator, repairs the in-app truck map and profile view, and keeps ELD data and Lenovo truck routing unchanged.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }

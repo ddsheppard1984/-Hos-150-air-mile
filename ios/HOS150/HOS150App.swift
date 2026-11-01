@@ -1327,7 +1327,16 @@ function saveProfile(){
  }catch(e){setMessage(e.message,'warn')}
 }
 function build(){
- const route=$('route');if(!route||!Core())return;
+ let route=$('route');
+ if(!Core())return;
+ if(!route){
+   const main=document.querySelector('main');
+   if(!main)return;
+   route=document.createElement('section');route.id='route';route.className='screen';
+   main.appendChild(route);
+ }
+ const navButton=document.querySelector('body>nav [data-tab="route"]');
+ if(navButton)navButton.textContent='🚛 Truck Navigation';
  if(map){map.remove();map=null;line=null;destinationMarker=null;originMarker=null}
  route.className='screen t40-route';route.innerHTML=
  '<section class="t40-top"><div class="t40-heading"><h2>🚛 Truck Navigation</h2><span class="t40-region">MAINE MAP</span></div>'+
@@ -1368,6 +1377,7 @@ function build(){
  $('t40start').onclick=()=>{if(!planned)return;active=true;setStats();setMessage('In-app turn guidance active. Keep screen visible, and verify every restriction.','good')};
  $('t40stop').onclick=()=>{active=false;setStats();setTurn('Guidance stopped');};
  renderRecent();mapInit();ensureGPS();
+ if(!map&&$('t40message'))setMessage('Map tiles unavailable. Check network connection; route planning requires a working map and Lenovo router.','warn');
 }
 function stopGPS(){
  if(watch!==null){try{navigator.geolocation?.clearWatch(watch)}catch{}watch=null;}
