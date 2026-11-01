@@ -781,6 +781,207 @@ else boot();
 (()=>{if(!document.getElementById('hosNativeLiveStyle')){const s=document.createElement('style');s.id='hosNativeLiveStyle';s.textContent="/* HOS150 live ELD graph & event log: dedicated read-only display */\n.hos-live-readout{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin:12px 0 14px}\n.hos-live-status{font-weight:900;font-size:17px;color:#a3f5fc}\n.hos-live-timer{font-weight:750;font-size:14px;color:#fff}\n.hos-live-hint{font-size:12px;color:#9bb6cf;flex-basis:100%}\n.hos-live-graph{width:100%;overflow:hidden;border:1px solid #31556a;border-radius:12px;background:#091827;padding:12px 10px;min-height:246px}\n.hos-live-hours,.hos-live-lane{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center}\n.hos-live-hours{grid-template-columns:36px repeat(9,minmax(0,1fr));margin-bottom:10px;color:#bed6e8;font-size:10px;text-align:center}\n.hos-live-lane{min-height:42px;margin:4px 0}\n.hos-live-lane-title{font-size:11px;font-weight:900;color:#d9e8f7}\n.hos-live-track{height:34px;position:relative;overflow:hidden;border:1px solid #2a4b62;border-radius:5px;background:repeating-linear-gradient(90deg,#122b42,#122b42 calc(12.5% - 1px),#35506a calc(12.5% - 1px),#35506a 12.5%)}\n.hos-live-bar{height:70%;top:15%;position:absolute;min-width:2px;border-radius:4px}\n.hos-live-bar.off-duty{background:#60d9ef}.hos-live-bar.sleeper{background:#5e92ff}.hos-live-bar.driving{background:#ffbc5c}.hos-live-bar.on-duty{background:#41e3a4}\n.hos-live-legend{font-size:11px;color:#a6c0d9;margin-top:12px;line-height:1.4}\n.hos-live-event-list{display:grid;gap:8px}\n.hos-live-event{display:grid;grid-template-columns:minmax(82px,auto) minmax(75px,auto) 1fr;gap:8px;align-items:start;background:#0b2033;border:1px solid #25506d;border-radius:9px;padding:10px;color:#e5f4ff;font-size:12px;overflow-wrap:anywhere}\n.hos-live-event-time{color:#a5bdd0}.hos-live-event-status{font-weight:900}.hos-live-event-note{color:#d7e3ed}\n@media(max-width:650px){.hos-live-event{grid-template-columns:1fr 1fr}.hos-live-event-note{grid-column:1/-1}.hos-live-graph{padding:10px 7px}.hos-live-readout{gap:6px 12px}}\n";document.head.appendChild(s)}})();
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosNativeLiveCSS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeV39Core = #"""
+/* HOS150 V39 read-only cockpit calculations, not a certified ELD. */
+(function(root,factory){
+ const api=factory();
+ if(typeof module!=='undefined'&&module.exports)module.exports=api;
+ if(root)root.HOS150V39Core=api;
+})(typeof window!=='undefined'?window:null,function(){
+ 'use strict';
+ const H=3600000,MIN=60000;
+ const DUTIES=new Set(['OFF DUTY','SLEEPER','ON DUTY','DRIVING']);
+ const finiteTime=n=>Number.isFinite(Number(n))&&Number(n)>0?Number(n):null;
+ function clock(ms){
+   if(ms===null||!Number.isFinite(ms))return '—';
+   const minutes=Math.floor(Math.max(0,ms)/MIN);
+   return String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0');
+ }
+ function model(raw,now=Date.now()){
+   const s=raw&&typeof raw==='object'?raw:{};
+   const ts=Number(now);
+   if(!Number.isFinite(ts)||ts<=0)throw Error('Invalid clock time');
+   const status=DUTIES.has(s.status)?s.status:'UNKNOWN';
+   const shift=finiteTime(s.shiftStart),active=finiteTime(s.currentStart);
+   const start=shift&&shift<=ts?shift:null;
+   let error=false;
+   const items=[];
+   if(start){
+     for(const entry of Array.isArray(s.segments)?s.segments:[]){
+       if(!entry||!DUTIES.has(entry.status))continue;
+       const a=finiteTime(entry.start),b=finiteTime(entry.end);
+       if(!a||!b||b<=a){error=true;continue}
+       if(b<=start||a>=ts)continue;
+       items.push({status:entry.status,start:Math.max(start,a),end:Math.min(ts,b)});
+     }
+     if(active&&active<=ts&&DUTIES.has(status))items.push({status,start:Math.max(active,start),end:ts});
+   }
+   items.sort((a,b)=>a.start-b.start||a.end-b.end);
+   let cursor=start,driving=0,sinceBreak=0,nonDriving=0;
+   for(const entry of items){
+     if(entry.start<cursor-1000){error=true;continue}
+     if(entry.start>cursor+1000)error=true; // Gaps cannot be assumed to be breaks.
+     const span=Math.max(0,entry.end-entry.start);
+     cursor=Math.max(cursor,entry.end);
+     if(entry.status==='DRIVING'){
+       driving+=span;sinceBreak+=span;nonDriving=0;
+     }else{
+       nonDriving+=span;
+       if(nonDriving>=30*MIN)sinceBreak=0;
+     }
+   }
+   if(start&&cursor<ts-1000)error=true;
+   // Do not present optimistic clocks if the input history contains gaps or overlaps.
+   const drivingLeft=start&&!error?Math.max(0,11*H-driving):null;
+   const windowLeft=start?Math.max(0,14*H-(ts-start)):null;
+   const breakLeft=start&&!error?Math.max(0,8*H-sinceBreak):null;
+   const base=s.cycleRemaining==null?null:Number(s.cycleRemaining);
+   const cycleBase=base!==null&&Number.isFinite(base)&&base>=0?base:null;
+   const cycleLeft=start&&!error&&cycleBase!==null?Math.max(0,cycleBase*H-driving-items.filter(x=>x.status==='ON DUTY').reduce((n,x)=>n+x.end-x.start,0)):null;
+   const loads=Array.isArray(s.loads)?s.loads:[];
+   const next=loads.find(x=>x&&typeof x==='object'&&x.status!=='completed'&&x.delivered!==true);
+   const destination=next?.delivery||next?.destination||s.routeEnd||'No active destination';
+   const gps=s.pos&&Number.isFinite(Number(s.pos.lat))&&Number.isFinite(Number(s.pos.lon))?'GPS recorded':'GPS not available';
+   const messages=[];
+   if(!start)messages.push('Start shift to calculate HOS estimates.');
+   if(error)messages.push('Incomplete or overlapping duty history: review the log.');
+   if(windowLeft!==null&&windowLeft<=30*MIN)messages.push('14-hour window is low; verify applicability.');
+   if(drivingLeft!==null&&drivingLeft<=30*MIN)messages.push('Driving-time estimate is low.');
+   if(breakLeft!==null&&breakLeft<=30*MIN)messages.push('Check 30-minute break requirements and exemptions.');
+   const nextStatus=status==='UNKNOWN'?'Duty status unknown':status;
+   return {status:nextStatus,shiftStarted:!!start,historyReliable:!error,
+      drivingLeft,windowLeft,breakLeft,cycleLeft,
+      drivingUsed:!error&&start?driving:null,
+      destination:String(destination).slice(0,120),gps,
+      syncSensitive:true,messages,clock,counts:{records:items.length,events:Array.isArray(s.events)?s.events.length:0}};
+ }
+ return {model,clock};
+});
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeV39Core, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeV39UI = #"""
+/* HOS150 V39 Driver Cockpit — display-only; legacy duty buttons remain authoritative. */
+(()=>{'use strict';
+if(window.__hos150V39Cockpit)return;
+window.__hos150V39Cockpit=true;
+const $=id=>document.getElementById(id);
+const dom=(tag,cls,id)=>{
+ const el=document.createElement(tag);
+ if(cls)el.className=cls;
+ if(id)el.id=id;
+ return el;
+};
+function navigate(tab){
+ const button=document.querySelector('body>nav button[data-tab="'+tab+'"]');
+ if(button)button.click();
+ else {const msg=$('v39Notice');if(msg)msg.textContent='The '+tab+' screen is unavailable; duty records were not changed.'}
+}
+function repairNav(){
+ const nav=document.querySelector('body>nav');
+ if(!nav)return;
+ const seen=new Map();
+ for(const button of [...nav.querySelectorAll('button[data-tab]')].reverse()){
+   const key=button.dataset.tab;
+   if(!key)continue;
+   if(seen.has(key)){
+      if(button.classList.contains('sel'))seen.get(key).classList.add('sel');
+      button.remove();
+   }else seen.set(key,button);
+ }
+}
+function build(){
+ const home=$('home');
+ if(!home||!window.HOS150V39Core)return false;
+ if($('v39Cockpit'))return true;
+ const frame=dom('section','v39-cockpit card','v39Cockpit');
+ frame.setAttribute('aria-label','V39 Driver Cockpit');
+ const eyebrow=dom('div','v39-eyebrow');eyebrow.textContent='V39 • DRIVER COCKPIT';
+ const title=dom('h2','v39-title');title.textContent='Ready for the road';
+ const sub=dom('p','v39-subtitle');sub.textContent='Live duty guidance • local records • one-tap tools';
+ const head=dom('div','v39-heading');
+ head.append(eyebrow,title,sub);
+ const status=dom('div','v39-status','v39Status');status.setAttribute('aria-live','polite');
+ frame.append(head,status);
+ const grid=dom('div','v39-clocks');
+ for(const [key,label] of [['Driving','11-hour driving'],['Window','14-hour window'],['Break','8-hour break check'],['Cycle','Cycle • manual']]){
+    const card=dom('div','v39-clock');
+    const t=dom('div','v39-clock-label');t.textContent=label;
+    const value=dom('strong','v39-clock-value','v39'+key);value.textContent='—';
+    card.append(t,value);grid.appendChild(card);
+ }
+ frame.appendChild(grid);
+ const details=dom('div','v39-details');
+ for(const [key,label] of [['Destination','Next stop'],['GPS','Location'],['Sync','Phone / server']]){
+    const item=dom('div','v39-detail');
+    const t=dom('span','v39-detail-label');t.textContent=label;
+    const v=dom('b','v39-detail-value','v39'+key);v.textContent='—';
+    item.append(t,v);details.appendChild(item);
+ }
+ frame.appendChild(details);
+ const actions=dom('div','v39-actions');
+ for(const [key,label] of [['log','View live log'],['compliance','HOS planner'],['dispatch','Dispatch'],['route','Navigation']]){
+    const button=dom('button','v39-action');
+    button.type='button';button.dataset.target=key;
+    button.textContent=label;
+    button.addEventListener('click',()=>navigate(key));
+    actions.appendChild(button);
+ }
+ frame.appendChild(actions);
+ const notice=dom('p','v39-notice','v39Notice');
+ notice.setAttribute('role','status');
+ frame.appendChild(notice);
+ const foot=dom('p','v39-legal');
+ foot.textContent='Prototype estimates only. Not a registered ELD or legal HOS determination. Verify driving limits, exemptions and records.';
+ frame.appendChild(foot);
+ home.insertBefore(frame,home.firstChild);
+ return true;
+}
+function render(){
+ if(!build())return;
+ const read=()=>{
+   try{return JSON.parse(localStorage.getItem('hos150v13')||'{}')}
+   catch{return null}
+ };
+ const state=read(),sync=window.HOS150ServerSync?.status?.();
+ const n=$('v39Notice');
+ if(!state){n.textContent='Local records cannot be read; no calculations shown.';return}
+ const m=window.HOS150V39Core.model(state);
+ const clock=window.HOS150V39Core.clock;
+ for(const [key,value] of [['Driving',m.drivingLeft],['Window',m.windowLeft],['Break',m.breakLeft],['Cycle',m.cycleLeft]]){
+   const field=$('v39'+key);if(field)field.textContent=value===null?'—':clock(value);
+ }
+ $('v39Status').textContent='Duty: '+m.status+(m.shiftStarted?'':' • shift not started');
+ $('v39Destination').textContent=m.destination;
+ $('v39GPS').textContent=m.gps;
+ $('v39Sync').textContent=sync?.conflict?'Conflict — export backup':sync?.dirty?'Saved locally • sync pending':navigator.onLine?'Online • records saved':'Offline • records saved';
+ n.textContent=m.messages.join(' ')||(m.shiftStarted?'Advisory clocks updating; verify your logs.':'No shift started.');
+ $('v39Cockpit').dataset.warning=(sync?.conflict||m.messages.length)?'true':'false';
+}
+function boot(){
+ if(!build())return;
+ repairNav();
+ const nav=document.querySelector('body>nav');
+ if(nav&&typeof MutationObserver!=='undefined'){
+   new MutationObserver(repairNav).observe(nav,{childList:true});
+ }
+ render();
+ window.addEventListener('hos150:state-updated',render);
+ window.addEventListener('hos150:sync-status',render);
+ window.addEventListener('storage',event=>{if(event.key==='hos150v13')render()});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)render()});
+ setInterval(()=>{if($('home')?.classList.contains('active'))render()},10000);
+ setTimeout(()=>{repairNav();render()},1100);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeV39UI, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeV39Style = #"""
+(()=>{if(!document.getElementById('hosNativeV39Style')){const s=document.createElement('style');s.id='hosNativeV39Style';s.textContent="/* HOS150 V39 mobile-first, readable Driver Cockpit. */\n#v39Cockpit{background:linear-gradient(145deg,#101f35,#0a1625)!important;color:#f1f8ff!important;border:1px solid #2e779e!important;border-radius:20px!important;padding:16px!important;margin:10px 0 15px!important;box-shadow:0 12px 24px #00101d8c!important}\n.v39-eyebrow{font-size:11px;font-weight:900;letter-spacing:.16em;color:#69dff6}\n.v39-title{font-size:clamp(24px,6vw,33px)!important;line-height:1.16;margin:8px 0 3px!important;font-weight:900!important;letter-spacing:-.015em!important;color:#fff!important}\n.v39-subtitle,.v39-legal{font-size:12px;color:#adcadf;line-height:1.5}\n.v39-status{font-size:14px;font-weight:850;color:#6df2c8;margin:10px 0 12px}\n.v39-clocks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}\n.v39-clock{background:#172b45;border:1px solid #355d7c;border-radius:14px;padding:14px 11px;min-width:0}\n.v39-clock-label{font-weight:750;font-size:11px;line-height:1.3;color:#afcbe0;letter-spacing:.02em}\n.v39-clock-value{display:block;font-weight:900;font-variant-numeric:tabular-nums;font-size:clamp(24px,6vw,35px);color:#fff;line-height:1.3;margin-top:5px}\n.v39-details{display:grid;gap:8px;margin:12px 0}\n.v39-detail{display:grid;grid-template-columns:92px minmax(0,1fr);align-items:center;gap:6px;background:#0f263e;border:1px solid #244964;border-radius:10px;padding:10px}\n.v39-detail-label{font-size:11px;color:#acc6db}.v39-detail-value{font-size:13px;overflow-wrap:anywhere;color:#eef9ff}\n.v39-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}\n#v39Cockpit button.v39-action{background:#1b4463!important;border:1px solid #3983a8!important;color:#fff!important;border-radius:10px!important;padding:12px 6px!important;min-height:48px!important;font-size:13px!important;font-weight:800!important;white-space:normal!important}\n#v39Cockpit button.v39-action:focus-visible{outline:3px solid #7ae8fa;outline-offset:2px}\n.v39-notice{color:#f4d18b;font-size:12px;font-weight:720;line-height:1.5;margin:11px 0 0}\n#v39Cockpit[data-warning=true] .v39-status{color:#ffcd8d}\n.v39-legal{margin:10px 0 0}\nbody>nav{scrollbar-width:thin}\n@media(max-width:760px){\n body>header,body>nav{position:relative!important;top:auto!important}\n body>nav{display:flex!important;flex-wrap:nowrap!important;max-width:100vw!important;overflow-x:auto!important;overscroll-behavior-x:contain}\n body>nav button[data-tab]{flex:0 0 auto!important;min-height:42px}\n #v39Cockpit{padding:13px!important}\n main{padding:9px!important}\n}\n@media(max-width:355px){.v39-clocks{gap:6px}.v39-clock{padding:11px 8px}.v39-detail{grid-template-columns:70px minmax(0,1fr)}}\n";document.head.appendChild(s)}})();
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeV39Style, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false

@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.9",
-  "webVersion": "38.1",
-  "webBuildId": "2026-11-01-v38.1-live-eld-hotfix6",
-  "webHotfix": "v38-live-log-ui.js?v=38.1-hotfix6",
-  "releaseNotes": "Restores the 24-hour visual ELD duty graph and a live event log near the top of ELD Log. Refreshes current OFF DUTY and driving indicators, preserves original duty records and safe reconciliation. Native display fallback included.",
+  "iosVersion": "1.0.10",
+  "webVersion": "39.0",
+  "webBuildId": "2026-11-01-v39.0",
+  "webHotfix": "v39-cockpit.js?v=39.0",
+  "releaseNotes": "V39 Driver Cockpit: consolidated navigation, large advisory HOS clocks with accurate not-started and incomplete-history states, break attention, active delivery and sync status. Read-only dashboard keeps existing driving logs and recovery controls. Matching web deployment required.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
