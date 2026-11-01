@@ -1,0 +1,66 @@
+name: HOS 150 native iPhone IPA and SideStore feed
+on:
+  push:
+    branches:
+      - feature/hos150-native-ios-sidestore-20261031
+    paths:
+      - ios/**
+      - .github/workflows/hos150-ios-sidestore.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Checkout verified source
+        uses: actions/checkout@v4
+      - name: Generate project
+        shell: bash
+        run: |
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          cd ios
+          xcodegen generate
+      - name: Build unsigned native app
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project ios/HOS150.xcodeproj -scheme HOS150 \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/HOS150Derived" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            CURRENT_PROJECT_VERSION="$((100 + GITHUB_RUN_NUMBER))" build
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/HOS150Derived/Build/Products/Release-iphoneos/HOS150.app"
+          test -d "$APP"
+          mkdir -p build-payload/Payload ios-output
+          ditto "$APP" build-payload/Payload/HOS150.app
+          (cd build-payload && zip -qry ../ios-output/HOS150-unsigned.ipa Payload)
+          shasum -a 256 ios-output/HOS150-unsigned.ipa > ios-output/SHA256SUMS.txt
+      - name: Keep verified build as GitHub artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOS150-unsigned-iPhone-IPA
+          path: ios-output/*
+          retention-days: 7
+          if-no-files-found: error
+      - name: Publish new SideStore release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/hos150-native-ios-sidestore-20261031'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/hos150-ios-updates:refs/remotes/origin/hos150-ios-updates
+          DEST="$RUNNER_TEMP/HOS150OTA"
+          git worktree add -B hos150-ios-updates "$DEST" origin/hos150-ios-updates
+          python3 ios/ota_publish.py ios-output/HOS150-unsigned.ipa "$DEST/ota"
+          git -C "$DEST" config user.name "github-actions[bot]"
+          git -C "$DEST" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$DEST" add ota/source.json ota/HOS150.ipa ota/icon.png
+          if ! git -C "$DEST" diff --cached --quiet; then
+            git -C "$DEST" commit -m "Publish latest HOS 150 SideStore IPA"
+            git -C "$DEST" push origin HEAD:refs/heads/hos150-ios-updates
+          fi
