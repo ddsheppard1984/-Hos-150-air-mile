@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.15",
-  "webVersion": "40.2",
-  "webBuildId": "2026-11-01-v40.2-active-nav",
-  "webHotfix": "v40-truck-nav.js?v=40.2",
-  "releaseNotes": "V40.2 fixes the blank Truck Navigation tab by preserving the selected screen, repairing late script changes and disabling the obsolete V39 navigation script in the native app. Preserves truck routing and ELD history.",
+  "iosVersion": "1.0.16",
+  "webVersion": "40.3",
+  "webBuildId": "2026-11-01-v40.3-live-follow",
+  "webHotfix": "v40-live-guidance-core.js?v=40.3",
+  "releaseNotes": "V40.3 live map following with a large turn banner, GPS-aware spoken guidance, off-route recalculation, and Northeast truck routing once the Lenovo graph is verified and the HOS150 web update is deployed. Native offline fallback retains the prior map.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
