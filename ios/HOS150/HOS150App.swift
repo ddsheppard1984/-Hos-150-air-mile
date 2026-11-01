@@ -612,6 +612,175 @@ window.addEventListener('hos150:sync-conflict',render);
 
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosSafeReconcileButton, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeLiveCore = #"""
+/* HOS150 V38 live ELD visualization: read-only, not a certified ELD. */
+(function(root,factory){
+ const api=factory();
+ if(typeof module!=='undefined'&&module.exports)module.exports=api;
+ if(root)root.HOS150LiveLogCore=api;
+})(typeof window!=='undefined'?window:null,function(){
+ 'use strict';
+ const TYPES=['OFF DUTY','SLEEPER','DRIVING','ON DUTY'];
+ function safeTime(x){const n=Number(x);return Number.isFinite(n)&&n>0&&n<9e15?n:null}
+ function dayWindow(value,now=Date.now()){
+  if(value&&!(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)))throw Error('Invalid log date');
+  const date=(typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value))?
+    new Date(Number(value.slice(0,4)),Number(value.slice(5,7))-1,Number(value.slice(8,10))):new Date(now);
+  if(!Number.isFinite(date.getTime()))throw Error('Invalid log date');
+  date.setHours(0,0,0,0);
+  const next=new Date(date);next.setDate(next.getDate()+1);
+  return {start:date.getTime(),end:next.getTime(),date:date.toLocaleDateString()};
+ }
+ function derive(storage,date,now=Date.now()){
+  const s=storage&&typeof storage==='object'?storage:{};
+  const window=dayWindow(date,now),start=window.start,end=window.end;
+  const status=TYPES.includes(s.status)?s.status:'UNKNOWN';
+  const all=Array.isArray(s.segments)?s.segments:[];
+  const segments=[];
+  const add=(x,live=false)=>{
+   if(!x||!TYPES.includes(x.status))return;
+   const a=safeTime(x.start),b=safeTime(x.end);
+   if(a===null||b===null||b<=a||a>=end||b<=start)return;
+   segments.push({status:x.status,start:Math.max(a,start),end:Math.min(b,end),live});
+  };
+  all.forEach(x=>add(x,false));
+  const current=safeTime(s.currentStart);
+  if(current!==null&&now>current&&TYPES.includes(status))add({status,start:current,end:now},true);
+  segments.sort((a,b)=>a.start-b.start);
+  const events=(Array.isArray(s.events)?s.events:[])
+    .filter(x=>x&&safeTime(Date.parse(x.time))!==null)
+    .sort((a,b)=>Date.parse(b.time)-Date.parse(a.time)).slice(0,15)
+    .map(x=>({time:Date.parse(x.time),status:TYPES.includes(x.status)?x.status:'EVENT',
+      source:String(x.source||'Recorded').slice(0,80),note:String(x.note||'').slice(0,280)}));
+  return {status,start:current,now,window,segments,events,
+    duration:current!==null&&current<=now?now-current:null,
+    totals:Object.fromEntries(TYPES.map(t=>[t,segments.filter(x=>x.status===t).reduce((n,x)=>n+x.end-x.start,0)]))};
+ }
+ return {TYPES,dayWindow,derive};
+});
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeLiveCore, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeLiveUI = #"""
+/* HOS150 read-only live chart and latest duty-event panel. */
+(()=>{'use strict';
+if(window.__hos150LiveLogInstalled)return;
+window.__hos150LiveLogInstalled=true;
+const $=id=>document.getElementById(id);
+const fmtTime=t=>new Date(t).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+const fmtDuration=ms=>{
+ if(ms===null||!Number.isFinite(ms))return 'Not started';
+ const minutes=Math.floor(Math.max(0,ms)/60000);
+ return Math.floor(minutes/60)+'h '+String(minutes%60).padStart(2,'0')+'m';
+};
+function el(tag,cls,text){
+ const e=document.createElement(tag);
+ if(cls)e.className=cls;
+ if(text!==undefined)e.textContent=text;
+ return e;
+}
+function getState(){try{return JSON.parse(localStorage.getItem('hos150v13')||'{}')}catch{return{}}}
+function build(){
+ const log=$('log'),old=$('logGrid');
+ if(!log||!old||!window.HOS150LiveLogCore)return false;
+ const graphCard=old.closest('.card');
+ if(!graphCard)return false;
+ let heading=$('hosLiveReadout');
+ if(!heading){
+   heading=el('div','hos-live-readout');heading.id='hosLiveReadout';
+   graphCard.insertBefore(heading,old);
+ }
+ let graph=$('hosLiveGraph');
+ if(!graph){
+   graph=el('div','hos-live-graph');graph.id='hosLiveGraph';
+   graphCard.insertBefore(graph,old);
+ }
+ let recent=$('hosLiveRecent');
+ if(!recent){
+   recent=el('div','card hos-live-recent');recent.id='hosLiveRecent';
+   const h=el('h2','', 'Live Duty Log');
+   const desc=el('p','muted','Most recent recorded duty events. Updates automatically while this screen is open.');
+   const items=el('div','hos-live-event-list');items.id='hosLiveEvents';
+   recent.append(h,desc,items);
+ }
+ if(log.firstElementChild!==graphCard)log.insertBefore(graphCard,log.firstElementChild);
+ if(graphCard.nextElementSibling!==recent)log.insertBefore(recent,graphCard.nextElementSibling);
+ // The legacy display continues receiving events, but the reliable chart is the
+ // visible one. Never remove the original log, original event table or its data.
+ old.style.display='none';
+ return true;
+}
+function render(){
+ if(!build())return;
+ const core=window.HOS150LiveLogCore;
+ const date=$('logDate')?.value||'',data=core.derive(getState(),date,Date.now());
+ const heading=$('hosLiveReadout'),graph=$('hosLiveGraph'),events=$('hosLiveEvents');
+ if(!heading||!graph||!events)return;
+ heading.replaceChildren();
+ const status=el('div','hos-live-status',data.status);
+ const timer=el('div','hos-live-timer',data.start?'Since '+fmtTime(data.start)+' • '+fmtDuration(data.duration):'No running timer');
+ const sync=window.HOS150ServerSync?.status?.();
+ const hint=el('div','hos-live-hint',(sync?.conflict?'Sync conflict — local record shown':sync?.dirty?'Changes waiting to sync':'Local saved duty record')+' • '+data.window.date);
+ heading.append(status,timer,hint);
+ graph.replaceChildren();
+ const hours=el('div','hos-live-hours');
+ const left=el('span','hos-axis-empty','');
+ hours.appendChild(left);
+ for(let h=0;h<=24;h+=3)hours.appendChild(el('span','',String(h).padStart(2,'0')));
+ graph.appendChild(hours);
+ const length=data.window.end-data.window.start;
+ for(const name of core.TYPES){
+   const row=el('div','hos-live-lane');
+   const tag=el('span','hos-live-lane-title',name==='OFF DUTY'?'OFF':name==='SLEEPER'?'SB':name==='DRIVING'?'D':'ON');
+   const track=el('div','hos-live-track');
+   for(const seg of data.segments.filter(x=>x.status===name)){
+      const bar=el('div','hos-live-bar '+name.replace(' ','-').toLowerCase());
+      bar.style.left=((seg.start-data.window.start)/length*100)+'%';
+      bar.style.width=(Math.max(0.1,(seg.end-seg.start)/length*100))+'%';
+      bar.title=name+' • '+fmtTime(seg.start)+' to '+fmtTime(seg.end)+(seg.live?' (current)':'');
+      track.appendChild(bar);
+   }
+   row.append(tag,track);graph.appendChild(row);
+ }
+ const legend=el('div','hos-live-legend','Graph shows recorded duty periods for the selected day • Running status updates live');
+ graph.appendChild(legend);
+ events.replaceChildren();
+ if(!data.events.length){
+   events.appendChild(el('p','muted','No recorded duty events yet. Current status appears in the graph above.'));
+ }else for(const event of data.events){
+   const row=el('div','hos-live-event');
+   row.append(
+     el('span','hos-live-event-time',new Date(event.time).toLocaleString([], {month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'})),
+     el('span','hos-live-event-status',event.status),
+     el('span','hos-live-event-note',(event.note||event.source)+' • '+event.source)
+   );
+   events.appendChild(row);
+ }
+}
+function boot(){
+ if(!build())return;
+ const date=$('logDate');
+ if(date)date.addEventListener('change',render);
+ const nav=document.querySelector('body>nav');
+ if(nav)nav.addEventListener('click',e=>{
+   if(e.target.closest('[data-tab="log"]'))setTimeout(render,170);
+ });
+ window.addEventListener('hos150:state-updated',render);
+ window.addEventListener('hos150:sync-status',render);
+ render();
+ setTimeout(render,1000);
+ setInterval(()=>{if($('log')?.classList.contains('active'))render()},2000);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+else boot();
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeLiveUI, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosNativeLiveCSS = #"""
+(()=>{if(!document.getElementById('hosNativeLiveStyle')){const s=document.createElement('style');s.id='hosNativeLiveStyle';s.textContent="/* HOS150 live ELD graph & event log: dedicated read-only display */\n.hos-live-readout{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;margin:12px 0 14px}\n.hos-live-status{font-weight:900;font-size:17px;color:#a3f5fc}\n.hos-live-timer{font-weight:750;font-size:14px;color:#fff}\n.hos-live-hint{font-size:12px;color:#9bb6cf;flex-basis:100%}\n.hos-live-graph{width:100%;overflow:hidden;border:1px solid #31556a;border-radius:12px;background:#091827;padding:12px 10px;min-height:246px}\n.hos-live-hours,.hos-live-lane{display:grid;grid-template-columns:36px minmax(0,1fr);align-items:center}\n.hos-live-hours{grid-template-columns:36px repeat(9,minmax(0,1fr));margin-bottom:10px;color:#bed6e8;font-size:10px;text-align:center}\n.hos-live-lane{min-height:42px;margin:4px 0}\n.hos-live-lane-title{font-size:11px;font-weight:900;color:#d9e8f7}\n.hos-live-track{height:34px;position:relative;overflow:hidden;border:1px solid #2a4b62;border-radius:5px;background:repeating-linear-gradient(90deg,#122b42,#122b42 calc(12.5% - 1px),#35506a calc(12.5% - 1px),#35506a 12.5%)}\n.hos-live-bar{height:70%;top:15%;position:absolute;min-width:2px;border-radius:4px}\n.hos-live-bar.off-duty{background:#60d9ef}.hos-live-bar.sleeper{background:#5e92ff}.hos-live-bar.driving{background:#ffbc5c}.hos-live-bar.on-duty{background:#41e3a4}\n.hos-live-legend{font-size:11px;color:#a6c0d9;margin-top:12px;line-height:1.4}\n.hos-live-event-list{display:grid;gap:8px}\n.hos-live-event{display:grid;grid-template-columns:minmax(82px,auto) minmax(75px,auto) 1fr;gap:8px;align-items:start;background:#0b2033;border:1px solid #25506d;border-radius:9px;padding:10px;color:#e5f4ff;font-size:12px;overflow-wrap:anywhere}\n.hos-live-event-time{color:#a5bdd0}.hos-live-event-status{font-weight:900}.hos-live-event-note{color:#d7e3ed}\n@media(max-width:650px){.hos-live-event{grid-template-columns:1fr 1fr}.hos-live-event-note{grid-column:1/-1}.hos-live-graph{padding:10px 7px}.hos-live-readout{gap:6px 12px}}\n";document.head.appendChild(s)}})();
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeLiveCSS, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false

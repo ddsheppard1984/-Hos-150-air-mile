@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.8",
+  "iosVersion": "1.0.9",
   "webVersion": "38.1",
-  "webBuildId": "2026-11-01-v38.1-safe-offduty-reconcile",
-  "webHotfix": "v38-reconcile-button.js?v=38.1-hotfix5",
-  "releaseNotes": "Adds one-tap safe OFF DUTY reconciliation. Compares phone/server histories, backs up both, synchronizes only compatible records, verifies the server and preserves all original driving periods. If records differ, it leaves both unchanged and asks for recovery export.",
+  "webBuildId": "2026-11-01-v38.1-live-eld-hotfix6",
+  "webHotfix": "v38-live-log-ui.js?v=38.1-hotfix6",
+  "releaseNotes": "Restores the 24-hour visual ELD duty graph and a live event log near the top of ELD Log. Refreshes current OFF DUTY and driving indicators, preserves original duty records and safe reconciliation. Native display fallback included.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
