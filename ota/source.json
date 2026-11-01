@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.5",
-          "buildVersion": "109",
-          "date": "2026-11-01T14:45:08+00:00",
-          "localizedDescription": "Mobile fix: one Driver Hub, a visible Start Fresh option at the top of ELD Log that archives history without changing original driving records, and native cache bypass for fresh server updates.",
-          "webBuildId": "2026-11-01-v38.1-mobile-hotfix2",
+          "version": "1.0.6",
+          "buildVersion": "110",
+          "date": "2026-11-01T14:58:48+00:00",
+          "localizedDescription": "Safety and readability: export both phone and server duty-log copies without overwriting either; fix overlapping GPS/status header on iPhone; retain one Driver Hub and Start Fresh with history. Source server update must also be deployed.",
+          "webBuildId": "2026-11-01-v38.1-mobile-hotfix3",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2747320,
+          "size": 2748893,
           "minOSVersion": "17.0"
         }
       ]
