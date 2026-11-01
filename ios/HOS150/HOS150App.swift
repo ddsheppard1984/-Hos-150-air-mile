@@ -349,6 +349,108 @@ struct HOS150Browser: UIViewRepresentable {
 
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosMobileRepair, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        // Native fallback: never overwrite conflicting driver data; show an export-only recovery tool.
+        let hosRecoveryAndHeader = #"""
+document.documentElement.setAttribute('data-hos-native','true');
+(()=>{if(!document.getElementById('hosNativeHeaderFix')){const st=document.createElement('style');st.id='hosNativeHeaderFix';st.textContent="/* HOS150 mobile header: separate app title, network state and GPS so they cannot overlap. */\nbody>header{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,max-content)!important;align-items:start!important;gap:8px 10px!important;min-width:0!important}\nbody>header>div:first-child{grid-column:1/-1!important;min-width:0!important;max-width:100%!important}\nbody>header b{display:block!important;overflow-wrap:break-word!important;line-height:1.22!important}\nbody>header small{display:block!important;white-space:normal!important;line-height:1.45!important}\nbody>header>span{max-width:100%!important;min-width:0!important;overflow-wrap:break-word!important}\nbody>header #net{grid-column:1!important;grid-row:2!important;justify-self:start!important}\nbody>header #v37net{grid-column:2!important;grid-row:2!important;justify-self:end!important;text-align:right!important}\nbody>header #v37gps{grid-column:1/-1!important;grid-row:3!important;justify-self:end!important;text-align:right!important}\n@media(max-width:680px){\n body>header{padding:12px 13px!important}\n body>header b{font-size:clamp(16px,4.3vw,20px)!important;letter-spacing:.04em!important}\n body>header small{font-size:10px!important;letter-spacing:.035em!important}\n body>header #v37net{font-size:11px!important}\n html[data-hos-native=\"true\"] body>header{padding-top:66px!important}\n .hos-sync-recovery .row button{width:100%!important;white-space:normal!important;min-height:48px}\n}\n\n.hos-sync-recovery[hidden]{display:none!important}\n";document.head.appendChild(st)}})();
+/* HOS150 V38.2: show sync conflicts without overwriting either record set. */
+(()=>{'use strict';
+if(window.__hos150SyncRecoveryUI)return;
+window.__hos150SyncRecoveryUI=true;
+const $=id=>document.getElementById(id);
+let busy=false;
+function summary(storage){
+  try{
+    const state=JSON.parse(storage?.hos150v13||'{}');
+    return {dutyStatus:state.status||'Unknown',
+      completedPeriods:Array.isArray(state.segments)?state.segments.length:0,
+      events:Array.isArray(state.events)?state.events.length:0,
+      corrections:Array.isArray(state.corrections)?state.corrections.length:0,
+      archivedSessions:Array.isArray(state.sessionArchives)?state.sessionArchives.length:0};
+  }catch{return {error:'Stored log cannot be parsed; raw backup is still included'}}
+}
+function message(s){
+  for(const id of ['hosSyncRecoveryMessageLog','hosSyncRecoveryMessageSettings']){
+    const el=$(id);if(el)el.textContent=s;
+  }
+}
+function status(){
+  const sync=window.HOS150ServerSync;
+  try{return sync?.status?.()||{conflict:false,dirty:false}}catch{return {conflict:false,dirty:false}}
+}
+function refresh(){
+  const s=status();
+  for(const id of ['hosSyncRecoveryLog','hosSyncRecoverySettings']){
+    const card=$(id);if(!card)continue;
+    card.hidden=!s.conflict;
+    const st=card.querySelector('.hos-sync-status');
+    if(st)st.textContent=s.conflict?
+      'Sync conflict: both copies are being preserved. Export them before making further log corrections.':
+      'Local edits are waiting to sync. They have not been discarded.';
+  }
+}
+async function exportBoth(){
+  if(busy)return;busy=true;
+  message('Preparing local and server backup without changing either...');
+  try{
+    const sync=window.HOS150ServerSync;
+    if(!sync?.snapshot)throw Error('The local recovery snapshot is not available.');
+    const local=sync.snapshot(),s=status();
+    let server=null,serverError=null;
+    try{
+      const response=await fetch('/api/state',{cache:'no-store',credentials:'same-origin'});
+      if(!response.ok)throw Error('Server returned HTTP '+response.status);
+      const data=await response.json();
+      server={exists:!!data.exists,updatedAt:data.updated_at,state:data.state||{}};
+    }catch(e){serverError=String(e?.message||e)}
+    const data={
+      schema:'hos150-sync-recovery-v1',
+      exportedAt:new Date().toISOString(),
+      note:'PRIVATE DRIVER DATA. Archive both copies; do not overwrite one with the other without reviewing conflicting duty records.',
+      syncStatus:s,
+      phoneSummary:summary(local),
+      serverSummary:server?summary(server.state):null,
+      phoneSnapshot:local,
+      serverSnapshot:server,
+      serverError
+    };
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='hos150-phone-and-server-recovery-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    message(server?
+      'Exported both versions. No log was changed. Review the backup before deciding how to reconcile.':
+      'Exported the phone copy. Server could not be reached: '+serverError+'. Try again online.');
+  }catch(e){message('Recovery export could not be created: '+String(e?.message||e)+'. Your records were not changed.')}
+  finally{busy=false}
+}
+function card(id,msgId){
+  const el=document.createElement('div');
+  el.id=id;el.className='card hos-sync-recovery';el.hidden=true;
+  el.innerHTML='<h2>Sync recovery — preserve both copies</h2>'+
+    '<p class="hos-sync-status" role="status"></p>'+
+    '<div class="status warn">Your phone and server may contain different driving records. The app will not automatically replace either copy.</div>'+
+    '<div class="row"><button class="hos-export-copies" type="button">EXPORT PHONE + SERVER BACKUP</button></div>'+
+    '<p class="muted" id="'+msgId+'">Only the export button runs here. No log or server state is modified.</p>';
+  el.querySelector('.hos-export-copies').onclick=exportBoth;
+  return el
+}
+function boot(){
+  const log=$('log'),settings=$('settings');
+  if(log&&!$('hosSyncRecoveryLog'))log.insertBefore(card('hosSyncRecoveryLog','hosSyncRecoveryMessageLog'),log.firstChild);
+  if(settings&&!$('hosSyncRecoverySettings'))settings.insertBefore(card('hosSyncRecoverySettings','hosSyncRecoveryMessageSettings'),settings.firstChild);
+  refresh();
+  window.addEventListener('hos150:sync-conflict',refresh);
+  window.addEventListener('hos150:sync-status',refresh);
+  window.addEventListener('online',refresh);
+  setInterval(refresh,5000);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosRecoveryAndHeader, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false

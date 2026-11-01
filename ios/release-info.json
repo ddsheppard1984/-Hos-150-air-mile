@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.5",
+  "iosVersion": "1.0.6",
   "webVersion": "38.1",
-  "webBuildId": "2026-11-01-v38.1-mobile-hotfix2",
-  "webHotfix": "v38-nav-eld-hotfix.js?v=38.1-hotfix2",
-  "releaseNotes": "Mobile fix: one Driver Hub, a visible Start Fresh option at the top of ELD Log that archives history without changing original driving records, and native cache bypass for fresh server updates.",
+  "webBuildId": "2026-11-01-v38.1-mobile-hotfix3",
+  "webHotfix": "v38-sync-recovery-ui.js?v=38.1-hotfix3",
+  "releaseNotes": "Safety and readability: export both phone and server duty-log copies without overwriting either; fix overlapping GPS/status header on iPhone; retain one Driver Hub and Start Fresh with history. Source server update must also be deployed.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
