@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.17",
-  "webVersion": "40.4",
-  "webBuildId": "2026-11-01-v40.4-native-gps",
-  "webHotfix": "v40-truck-nav.js?v=40.4",
-  "releaseNotes": "V40.4: fixes New Hampshire truck route planning on iPhone by feeding CoreLocation Native GPS into the in-app router, rejecting stale fixes, displaying clear address/routing errors beside destination search, and keeping manually entered origins optional. Northeast Valhalla and ELD records unchanged.",
+  "iosVersion": "1.0.18",
+  "webVersion": "40.5",
+  "webBuildId": "2026-11-01-v40.5-ai",
+  "webHotfix": "v40-ai-copilot.js?v=40.5",
+  "releaseNotes": "V40.5: Adds Squeak AI Copilot to the HOS150 Driver Hub using the private Lenovo AI worker. Includes read-only clock guidance, safer IFTA/route/inspection help, and offline fallback. Preserves V40.4 truck navigation, native GPS, and ELD records. Prototype only; not a certified ELD.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
