@@ -1,6 +1,8 @@
 import SwiftUI
 import WebKit
 import CoreLocation
+import LocalAuthentication
+import UserNotifications
 
 private let primaryURL = "https://hos150.houseofsqueak.com/"
 private let accessLoginHost = "weathered-leaf-b8c1.cloudflareaccess.com"
@@ -83,6 +85,11 @@ struct HOS150Home: View {
     @State private var failure: String? = nil
     @State private var editSettings = false
     @State private var draft = ""
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("hos150BiometricLock") private var biometricLock = false
+    @AppStorage("hos150Reminders") private var reminders = false
+    @State private var unlocked = false
+    @State private var lockError = ""
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -152,6 +159,28 @@ struct HOS150Home: View {
             .background(.regularMaterial, in: Capsule())
             .padding(10)
         }
+        .onAppear { if biometricLock { unlock() } }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background && biometricLock { unlocked = false }
+            if phase == .active && biometricLock && !unlocked { unlock() }
+        }
+        .overlay {
+            if biometricLock && !unlocked {
+                ZStack {
+                    Color(red: 0.035, green: 0.055, blue: 0.085).ignoresSafeArea()
+                    VStack(spacing: 18) {
+                        Image(systemName: "lock.shield.fill").font(.system(size: 48)).foregroundStyle(.mint)
+                        Text("HOS 150 is locked").font(.title2).bold().foregroundStyle(.white)
+                        Text(lockError.isEmpty ? "Unlock with Face ID or your device passcode." : lockError)
+                            .foregroundStyle(.white.opacity(0.8)).multilineTextAlignment(.center)
+                        Button("Unlock HOS 150") { unlock() }.buttonStyle(.borderedProminent)
+                        Button("Open secure website in Safari") {
+                            if let url = URL(string: address) { UIApplication.shared.open(url) }
+                        }.foregroundStyle(.mint)
+                    }.padding(30)
+                }
+            }
+        }
         .sheet(isPresented: $editSettings) {
             NavigationStack {
                 Form {
@@ -167,6 +196,20 @@ struct HOS150Home: View {
                             reload()
                         }.disabled(!approvedURL(draft))
                     }
+                    Section("Privacy and Alerts") {
+                        Toggle("Lock with Face ID or device passcode", isOn: $biometricLock)
+                            .onChange(of: biometricLock) { _, enabled in
+                                if enabled { unlocked = false; unlock() }
+                                else { unlocked = true; lockError = "" }
+                            }
+                        Toggle("Enable HOS warning notifications", isOn: $reminders)
+                            .onChange(of: reminders) { _, enabled in
+                                if enabled {
+                                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+                                }
+                            }
+                        Text("Notifications are advisory and never replace certified ELD alerts.")
+                    }
                     Section("Native Location") {
                         Text(location.status)
                         Text("Native GPS is only shared with this HOS 150 web view while the app is in use. It does not automatically edit driving logs.")
@@ -181,6 +224,21 @@ struct HOS150Home: View {
                         Button("Done") { editSettings = false }
                     }
                 }
+            }
+        }
+    }
+
+    private func unlock() {
+        let ctx = LAContext()
+        var error: NSError?
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+            lockError = "Device authentication is unavailable. Use Safari to access your saved HOS records."
+            return
+        }
+        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Unlock HOS 150 driver records") { success, err in
+            DispatchQueue.main.async {
+                unlocked = success
+                lockError = success ? "" : (err?.localizedDescription ?? "Authentication unsuccessful")
             }
         }
     }
@@ -208,6 +266,7 @@ struct HOS150Browser: UIViewRepresentable {
         config.websiteDataStore = .default()
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         config.allowsInlineMediaPlayback = true
+        config.userContentController.add(context.coordinator, name: "hosAlert")
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false
@@ -230,7 +289,22 @@ struct HOS150Browser: UIViewRepresentable {
         context.coordinator.onStatus = onStatus
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
+        func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "hosAlert",
+                  message.frameInfo.securityOrigin.host == appHost,
+                  UserDefaults.standard.bool(forKey: "hos150Reminders"),
+                  let payload = message.body as? [String: Any],
+                  let warning = payload["message"] as? String,
+                  warning.count < 180 else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "HOS 150 • Review your clocks"
+            content.body = warning
+            content.sound = .default
+            let request = UNNotificationRequest(identifier: "hos150-advisory", content: content, trigger: nil)
+            UNUserNotificationCenter.current().add(request)
+        }
+
         var appHost = ""
         var onStatus: ((String?, Bool) -> Void)?
 

@@ -6,7 +6,7 @@ settings:
     SWIFT_VERSION: '5.10'
     IPHONEOS_DEPLOYMENT_TARGET: '17.0'
     TARGETED_DEVICE_FAMILY: '1'
-    MARKETING_VERSION: '1.0.1'
+    MARKETING_VERSION: '1.0.2'
     CURRENT_PROJECT_VERSION: '100'
 targets:
   HOS150:
@@ -20,6 +20,7 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: HOS 150
+        INFOPLIST_KEY_NSFaceIDUsageDescription: HOS 150 can lock your driver dashboard with Face ID when enabled.
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: HOS 150 needs your location for requested map and distance tools.
         INFOPLIST_KEY_NSCameraUsageDescription: HOS 150 uses the camera only for user-requested inspection photos.
         INFOPLIST_KEY_NSMicrophoneUsageDescription: HOS 150 requests microphone access only for user-initiated functions.
