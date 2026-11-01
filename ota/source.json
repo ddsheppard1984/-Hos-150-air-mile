@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.4",
-          "buildVersion": "108",
-          "date": "2026-11-01T14:35:41+00:00",
-          "localizedDescription": "V38.1 Driver Hub navigation hotfix: removes the duplicate Driver Hub tab, refreshes offline app caching, and preserves ELD log refresh, Face ID and notifications.",
-          "webBuildId": "2026-10-31-v38.1",
+          "version": "1.0.5",
+          "buildVersion": "109",
+          "date": "2026-11-01T14:45:08+00:00",
+          "localizedDescription": "Mobile fix: one Driver Hub, a visible Start Fresh option at the top of ELD Log that archives history without changing original driving records, and native cache bypass for fresh server updates.",
+          "webBuildId": "2026-11-01-v38.1-mobile-hotfix2",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2746437,
+          "size": 2747320,
           "minOSVersion": "17.0"
         }
       ]
