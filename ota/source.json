@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.8",
-          "buildVersion": "112",
-          "date": "2026-11-01T15:24:36+00:00",
-          "localizedDescription": "Adds one-tap safe OFF DUTY reconciliation. Compares phone/server histories, backs up both, synchronizes only compatible records, verifies the server and preserves all original driving periods. If records differ, it leaves both unchanged and asks for recovery export.",
-          "webBuildId": "2026-11-01-v38.1-safe-offduty-reconcile",
+          "version": "1.0.9",
+          "buildVersion": "113",
+          "date": "2026-11-01T15:36:57+00:00",
+          "localizedDescription": "Restores the 24-hour visual ELD duty graph and a live event log near the top of ELD Log. Refreshes current OFF DUTY and driving indicators, preserves original duty records and safe reconciliation. Native display fallback included.",
+          "webBuildId": "2026-11-01-v38.1-live-eld-hotfix6",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2752916,
+          "size": 2754985,
           "minOSVersion": "17.0"
         }
       ]
