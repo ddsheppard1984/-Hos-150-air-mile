@@ -1,0 +1,28 @@
+name: HOS 150 protected public address smoke test
+on:
+  push:
+    branches:
+      - feature/hos150-native-ios-sidestore-20261031
+    paths:
+      - .github/workflows/hos150-public-smoke.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify secure domain without exposing driver data
+        shell: bash
+        run: |
+          set -euo pipefail
+          getent ahostsv4 hos150.houseofsqueak.com | head -n 2
+          CODE="$(curl -sS -D headers.txt -o body.txt --max-time 35 --connect-timeout 10 -w '%{http_code}' https://hos150.houseofsqueak.com/)"
+          echo "Unauthenticated status: $CODE"
+          test "$CODE" = 302 || test "$CODE" = 303 || test "$CODE" = 401 || test "$CODE" = 403
+          grep -Eiq '^location:.*(cdn-cgi/access|cloudflareaccess\.com)|^cf-access-' headers.txt || {
+            echo "No Cloudflare Access challenge: not publicly safe"
+            exit 1
+          }
+          echo "DNS, HTTPS, and owner-only Access challenge: PASS"
