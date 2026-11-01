@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.9",
-          "buildVersion": "113",
-          "date": "2026-11-01T15:36:57+00:00",
-          "localizedDescription": "Restores the 24-hour visual ELD duty graph and a live event log near the top of ELD Log. Refreshes current OFF DUTY and driving indicators, preserves original duty records and safe reconciliation. Native display fallback included.",
-          "webBuildId": "2026-11-01-v38.1-live-eld-hotfix6",
+          "version": "1.0.10",
+          "buildVersion": "114",
+          "date": "2026-11-01T16:21:04+00:00",
+          "localizedDescription": "V39 Driver Cockpit: consolidated navigation, large advisory HOS clocks with accurate not-started and incomplete-history states, break attention, active delivery and sync status. Read-only dashboard keeps existing driving logs and recovery controls. Matching web deployment required.",
+          "webBuildId": "2026-11-01-v39.0",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2754985,
+          "size": 2760095,
           "minOSVersion": "17.0"
         }
       ]
