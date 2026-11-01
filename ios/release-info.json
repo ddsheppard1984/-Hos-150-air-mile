@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.7",
+  "iosVersion": "1.0.8",
   "webVersion": "38.1",
-  "webBuildId": "2026-11-01-v38.1-header-flowfix4",
-  "webHotfix": "v38-header-flowfix.css?v=38.1-hotfix4",
-  "releaseNotes": "Fixes the iPhone header and toolbar overlapping the ELD recovery screen. Header and navigation scroll normally, the iPhone web area starts below native controls, and export of phone/server logs remains non-destructive.",
+  "webBuildId": "2026-11-01-v38.1-safe-offduty-reconcile",
+  "webHotfix": "v38-reconcile-button.js?v=38.1-hotfix5",
+  "releaseNotes": "Adds one-tap safe OFF DUTY reconciliation. Compares phone/server histories, backs up both, synchronizes only compatible records, verifies the server and preserves all original driving periods. If records differ, it leaves both unchanged and asks for recovery export.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }

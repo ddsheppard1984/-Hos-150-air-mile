@@ -457,6 +457,161 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 (()=>{if(!document.getElementById('hosNativeFlow')){const st=document.createElement('style');st.id='hosNativeFlow';st.textContent="@media(max-width:760px){body>header,body>nav{position:relative!important;top:auto!important}body>header{z-index:1!important}body>nav{z-index:2!important;overflow-x:auto!important}html[data-hos-native=\"true\"] body>header:not(#unused){padding-top:12px!important}}";document.head.appendChild(st)}})();
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosNativeFlow, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosSafeReconcileCore = #"""
+/* HOS150 conservative same-history OFF DUTY reconciliation.
+   No automatic driving edits, no duplicate segments, no deletion of audit history. */
+(function(root,factory){
+ const api=factory(); if(typeof module!=='undefined'&&module.exports)module.exports=api;
+ if(root)root.HOS150SafeReconcile=api;
+})(typeof window!=='undefined'?window:null,function(){
+ 'use strict';
+ const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ const valid=x=>x&&typeof x==='object'&&!Array.isArray(x);
+ const canonical=x=>JSON.stringify(x,Object.keys(x||{}).sort()); // entries may contain nested data
+ function contains(longer,shorter){
+   const available=longer.map(x=>JSON.stringify(x));
+   for(const item of shorter){const i=available.indexOf(JSON.stringify(item));if(i<0)return false;available.splice(i,1);}
+   return true;
+ }
+ function reconcile(phoneStorage,serverStorage,now=Date.now()){
+   if(!valid(phoneStorage)||!valid(serverStorage))throw Error('Missing phone or server copy.');
+   const phone=JSON.parse(phoneStorage.hos150v13||'{}'),server=JSON.parse(serverStorage.hos150v13||'{}');
+   if(!valid(phone)||!valid(server))throw Error('Invalid saved driver record.');
+   if(phone.status!=='OFF DUTY'||server.status!=='OFF DUTY')throw Error('One copy is not OFF DUTY. Preserve both records for review.');
+   const keys=[new Set(Object.keys(phoneStorage)),new Set(Object.keys(serverStorage))];
+   if(keys[0].size!==keys[1].size||[...keys[0]].some(k=>!keys[1].has(k)))throw Error('Other saved app records differ; both copies must be reviewed.');
+   const merged={...serverStorage};
+   for(const key of keys[0]){
+     if(key==='hos150v13')continue;
+     if(!eq(phoneStorage[key],serverStorage[key]))throw Error('Saved app records differ in '+key+'; both copies were preserved.');
+   }
+   const history=['segments','events','corrections','sessionArchives'];
+   const state={...phone};
+   for(const field of history){
+     const a=phone[field]||[],b=server[field]||[];
+     if(!Array.isArray(a)||!Array.isArray(b))throw Error('Invalid '+field+' records.');
+     if(contains(a,b))state[field]=a;
+     else if(contains(b,a))state[field]=b;
+     else throw Error('Conflicting '+field+' history. No records were modified.');
+   }
+   const ignored=new Set([...history,'currentStart','pos','status']);
+   const fields=new Set([...Object.keys(phone),...Object.keys(server)]);
+   for(const field of fields)if(!ignored.has(field)){
+     if(!eq(phone[field],server[field]))throw Error('Duty data differs in '+field+'. Preserving both copies for review.');
+   }
+   const starts=[phone.currentStart,server.currentStart].map(Number);
+   if(starts.some(n=>!Number.isSafeInteger(n)||n<=0||n>now+60000))throw Error('Invalid OFF DUTY start time; review is needed.');
+   // Choose the later OFF DUTY start to avoid overstating consecutive rest.
+   state.currentStart=Math.max(...starts);
+   state.status='OFF DUTY';
+   state.pos=phone.pos||server.pos;
+   merged.hos150v13=JSON.stringify(state);
+   if(JSON.stringify(merged).length>=6500000)throw Error('Merged state exceeds safe storage budget.');
+   return {state:merged,summary:{status:'OFF DUTY',start:state.currentStart,segments:state.segments.length,events:state.events.length,corrections:state.corrections.length,archives:state.sessionArchives.length}};
+ }
+ return {reconcile};
+});
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosSafeReconcileCore, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosSafeReconcileClient = #"""
+/* HOS150: reconcile compatible OFF DUTY copies only, with separate backups. */
+(()=>{'use strict';
+if(window.__hos150ReconcilingLoaded)return;window.__hos150ReconcilingLoaded=true;
+const $=id=>document.getElementById(id);
+const MSG='hos150AutoReconcileStatus';
+function note(msg,ok=false){
+ let el=$(MSG);
+ if(!el){const target=$('hosSyncRecoveryLog')||$('log');if(!target)return;el=document.createElement('p');el.id=MSG;el.className='status neutral';target.prepend(el);}
+ el.textContent=msg;el.className='status '+(ok?'good':'warn');
+}
+let attempted=false;
+async function run(){
+ if(attempted)return;
+ const sync=window.HOS150ServerSync,core=window.HOS150SafeReconcile;
+ if(!sync?.status||!core?.reconcile)return;
+ if(!sync.status().conflict)return;
+ if(!navigator.onLine){note('Offline: both records are preserved. Reconciliation will retry when connected.');return;}
+ attempted=true;
+ note('Comparing your OFF DUTY records safely. Neither copy will be discarded.');
+ try{
+   const local=sync.snapshot();
+   const response=await fetch('/api/state',{cache:'no-store',credentials:'same-origin'});
+   if(!response.ok)throw Error('Server unavailable. No changes made.');
+   const remote=await response.json();
+   if(!remote.exists||!remote.state||remote.updated_at==null)throw Error('Server records unavailable. Use the recovery export.');
+   const plan=core.reconcile(local,remote.state);
+   const stamp=Date.now(),suffix=String(stamp);
+   // These private recovery keys are excluded from outgoing synchronization.
+   localStorage.setItem('hos150_local_recovery_'+suffix,JSON.stringify(local));
+   localStorage.setItem('hos150_server_recovery_'+suffix,JSON.stringify(remote.state));
+   if(JSON.stringify(sync.snapshot())!==JSON.stringify(local))throw Error('Phone records changed during comparison. Re-open recovery to review.');
+   const put=await fetch('/api/state',{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({state:plan.state,base_updated_at:remote.updated_at}),
+      credentials:'same-origin',cache:'no-store'
+   });
+   if(put.status===409)throw Error('Server records changed during reconciliation. Both original copies were preserved.');
+   if(!put.ok)throw Error('Reconciliation rejected (HTTP '+put.status+'). Original records preserved.');
+   const saved=await put.json();
+   const verifyRes=await fetch('/api/state',{cache:'no-store',credentials:'same-origin'});
+   if(!verifyRes.ok)throw Error('Saved, but server verification unavailable; review status before retrying.');
+   const verify=await verifyRes.json();
+   if(verify.updated_at!==saved.updated_at||JSON.stringify(verify.state)!==JSON.stringify(plan.state))
+      throw Error('Server verification mismatch. Recovery backups preserved.');
+   if(JSON.stringify(sync.snapshot())!==JSON.stringify(local))throw Error('Phone records changed while saving; current phone records remain untouched, backups preserved.');
+   for(const [key,value] of Object.entries(plan.state))localStorage.setItem(key,value);
+   localStorage.setItem('hos150_last_server_version_v38',String(saved.updated_at));
+   localStorage.removeItem('hos150_sync_pending_v38');
+   localStorage.removeItem('hos150_sync_conflict_v38');
+   sessionStorage.setItem('hos150_reconcile_completed','OFF DUTY records synchronized; earlier driving history preserved.');
+   note('Phone and server now match. Original driving history preserved.',true);
+   setTimeout(()=>location.reload(),650);
+ }catch(e){
+   note(String(e?.message||e)+' No records were intentionally overwritten. Use EXPORT PHONE + SERVER BACKUP for review.');
+ }
+}
+window.HOS150ReconcileRun=run;
+function boot(){
+ const completed=sessionStorage.getItem('hos150_reconcile_completed');
+ if(completed){sessionStorage.removeItem('hos150_reconcile_completed');note(completed,true);}
+ setTimeout(()=>window.dispatchEvent(new Event('hos150:reconcile-ui-ready')),900);
+ window.addEventListener('hos150:sync-conflict',()=>window.dispatchEvent(new Event('hos150:reconcile-ui-ready')));
+ 
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+else boot();
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosSafeReconcileClient, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        let hosSafeReconcileButton = #"""
+/* User-triggered, guarded HOS150 conflict reconciliation. */
+(()=>{'use strict';
+if(window.__hos150ReconcileButtonInstalled)return;
+window.__hos150ReconcileButtonInstalled=true;
+function render(){
+ const sync=window.HOS150ServerSync;
+ if(!sync?.status?.().conflict)return;
+ for(const id of ['hosSyncRecoveryLog','hosSyncRecoverySettings']){
+  const card=document.getElementById(id);
+  if(!card||card.querySelector('.hos-reconcile-button'))continue;
+  const row=card.querySelector('.row');if(!row)continue;
+  const button=document.createElement('button');
+  button.type='button';button.className='hos-reconcile-button';
+  button.textContent='RECONCILE OFF DUTY COPIES';
+  button.onclick=()=>window.HOS150ReconcileRun?.();
+  row.appendChild(button);
+ }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',render,{once:true});
+else render();
+window.addEventListener('hos150:reconcile-ui-ready',render);
+window.addEventListener('hos150:sync-conflict',render);
+})();
+
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosSafeReconcileButton, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false
