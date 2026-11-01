@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.13",
-          "buildVersion": "117",
-          "date": "2026-11-01T17:00:45+00:00",
-          "localizedDescription": "V40 in-app truck-profile navigation: full HOS150 map, turn guidance, vehicle height/width/length/weight/axles/hazmat, optional speech, Lenovo Valhalla private router (Maine coverage), and preserved ELD histories. Actual routing service deployment required.",
-          "webBuildId": "2026-11-01-v40.0",
+          "version": "1.0.14",
+          "buildVersion": "118",
+          "date": "2026-11-01T17:23:47+00:00",
+          "localizedDescription": "V40.1 fixes blank Live Route screen: prevents legacy V17 from replacing the truck navigator, repairs the in-app truck map and profile view, and keeps ELD data and Lenovo truck routing unchanged.",
+          "webBuildId": "2026-11-01-v40.1-navfix",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2769369,
+          "size": 2768980,
           "minOSVersion": "17.0"
         }
       ]
