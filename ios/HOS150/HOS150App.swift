@@ -99,6 +99,7 @@ struct HOS150Home: View {
                 busy = message != nil && !failed
             }
             .id(webID)
+            .padding(.top, 86) // Keep web content below the native four-button toolbar.
             .ignoresSafeArea(edges: .bottom)
 
             if busy || failure != nil {
@@ -451,6 +452,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 
 """#
         config.userContentController.addUserScript(WKUserScript(source: hosRecoveryAndHeader, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+        // iOS-only fallback: prevent fixed navigation from painting over recovery controls.
+        let hosNativeFlow = #"""
+(()=>{if(!document.getElementById('hosNativeFlow')){const st=document.createElement('style');st.id='hosNativeFlow';st.textContent="@media(max-width:760px){body>header,body>nav{position:relative!important;top:auto!important}body>header{z-index:1!important}body>nav{z-index:2!important;overflow-x:auto!important}html[data-hos-native=\"true\"] body>header:not(#unused){padding-top:12px!important}}";document.head.appendChild(st)}})();
+"""#
+        config.userContentController.addUserScript(WKUserScript(source: hosNativeFlow, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
 
         let view = WKWebView(frame: .zero, configuration: config)
         view.isOpaque = false

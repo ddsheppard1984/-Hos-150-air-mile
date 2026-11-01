@@ -1,8 +1,8 @@
 {
-  "iosVersion": "1.0.6",
+  "iosVersion": "1.0.7",
   "webVersion": "38.1",
-  "webBuildId": "2026-11-01-v38.1-mobile-hotfix3",
-  "webHotfix": "v38-sync-recovery-ui.js?v=38.1-hotfix3",
-  "releaseNotes": "Safety and readability: export both phone and server duty-log copies without overwriting either; fix overlapping GPS/status header on iPhone; retain one Driver Hub and Start Fresh with history. Source server update must also be deployed.",
+  "webBuildId": "2026-11-01-v38.1-header-flowfix4",
+  "webHotfix": "v38-header-flowfix.css?v=38.1-hotfix4",
+  "releaseNotes": "Fixes the iPhone header and toolbar overlapping the ELD recovery screen. Header and navigation scroll normally, the iPhone web area starts below native controls, and export of phone/server logs remains non-destructive.",
   "publishedVia": "GitHub Actions macOS HOS150 SideStore IPA workflow"
 }
