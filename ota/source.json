@@ -16,13 +16,13 @@
       "category": "utilities",
       "versions": [
         {
-          "version": "1.0.11",
-          "buildVersion": "115",
-          "date": "2026-11-01T16:28:54+00:00",
-          "localizedDescription": "V39.1 removes the redundant INSTALL APP banner from the installed SideStore iPhone app and HOS150 web view. Preserves the V39 cockpit, ELD live graph, GPS, offline records, and safe sync.",
-          "webBuildId": "2026-11-01-v39.1",
+          "version": "1.0.12",
+          "buildVersion": "116",
+          "date": "2026-11-01T16:40:39+00:00",
+          "localizedDescription": "V39.2: simplified in-app destination search and map, one-tap Apple Maps/Waze handoff, saved customer locations and native fallback. Apple/Waze are car routes, not validated truck routes. HOS data remains unchanged.",
+          "webBuildId": "2026-11-01-v39.2",
           "downloadURL": "https://raw.githubusercontent.com/ddsheppard1984/-Hos-150-air-mile/hos150-ios-updates/ota/HOS150.ipa",
-          "size": 2760236,
+          "size": 2762616,
           "minOSVersion": "17.0"
         }
       ]
