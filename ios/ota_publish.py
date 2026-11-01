@@ -38,9 +38,9 @@ def main(ipa_name, outdir):
     assert info["CFBundleIdentifier"] == BUNDLE
     version=str(info["CFBundleShortVersionString"])
     build=str(info["CFBundleVersion"])
-    assert version == "1.0.0" and int(build)>100, (version,build)
+    assert version == "1.0.1" and int(build)>100, (version,build)
     (out/"HOS150.ipa").write_bytes(ipa.read_bytes())
-    icon(out/"icon.png")
+    __import__("shutil").copyfile("ios/HOS150/Assets.xcassets/AppIcon.appiconset/AppIcon.png",out/"icon.png")
     date=dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()
     source={
         "name":"House of Squeak — HOS 150",
@@ -61,7 +61,7 @@ def main(ipa_name, outdir):
                 "version":version,
                 "buildVersion":build,
                 "date":date,
-                "localizedDescription":"Secure access without phone Tailscale; native location control and diagnostics",
+                "localizedDescription":"Unique truck/logbook Home Screen icon, secure cloud access and native GPS",
                 "downloadURL":BASE+"HOS150.ipa",
                 "size":ipa.stat().st_size,
                 "minOSVersion":"17.0"

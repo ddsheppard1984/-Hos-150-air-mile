@@ -16,6 +16,14 @@ jobs:
     steps:
       - name: Checkout verified source
         uses: actions/checkout@v4
+      - name: Install selected HOS 150 truck icon into native asset catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s ios/HOS150/IconArt/HOS150.jpg
+          mkdir -p ios/HOS150/Assets.xcassets/AppIcon.appiconset
+          sips -s format png -z 1024 1024 ios/HOS150/IconArt/HOS150.jpg --out ios/HOS150/Assets.xcassets/AppIcon.appiconset/AppIcon.png
+          test -s ios/HOS150/Assets.xcassets/AppIcon.appiconset/AppIcon.png
       - name: Generate project
         shell: bash
         run: |
